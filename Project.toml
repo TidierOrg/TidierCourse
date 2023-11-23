@@ -1,0 +1,10 @@
+authors = ["Karandeep Singh", "Christoph Scheuch"]
+
+[deps]
+Tidier = "f0413319-3358-4bb0-8e7c-0c83523a93bd"
+FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+
+[compat]
+Tidier = "1.1"
+FileIO = "1.16"
+julia = "1.9"
