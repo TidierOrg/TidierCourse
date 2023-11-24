@@ -10,7 +10,7 @@ This course is currently under construction. Check back for updated content.
 
 ## Background
 
-- [Why Julia?](https://nbviewer.org/github/TidierOrg/TidierCourse/blob/main/why-julia/why-julia.ipynb)
+- [Why Julia?](why-julia/why-julia.ipynb)
 - [Data Pipelines](https://nbviewer.org/github/TidierOrg/TidierCourse/blob/main/data-pipelines/data-pipelines.ipynb)
 - Tidyverse and its descendants
 - What is Tidier.jl?
