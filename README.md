@@ -8,4 +8,9 @@ This course assumes a basic level of familiarity with programming but does not a
 
 Table of Contents:
 
+- [Introduction](introduction.ipynb)
+
+
+Interactive Notebooks
+
 - [Introduction](https://mybinder.org/v2/gh/TidierOrg/TidierCourse/HEAD?filepath=introduction.ipynb)
