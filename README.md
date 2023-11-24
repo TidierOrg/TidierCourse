@@ -6,11 +6,11 @@ Welcome to the **Tidier Course**, an interactive course designed to introduce yo
 
 This course assumes a basic level of familiarity with programming but does not assume any prior knowledge of Julia. This course emphasizes the parts of Julia required to read in, explore, and analyze data. Because this course is primarily oriented around data science, many important aspects of Julia will *not* be covered in this course.
 
-## Table of Contents
+## Read
 
-- [Introduction](https://nbviewer.org/github/TidierOrg/TidierCourse/blob/main/introduction.ipynb)
+- [Introduction](https://nbviewer.org/github/TidierOrg/TidierCourse/blob/main/introduction/introduction.ipynb)
 
 
 ## Interactive Notebooks (with Binder)
 
-- [Introduction](https://mybinder.org/v2/gh/TidierOrg/TidierCourse/HEAD?filepath=introduction.ipynb)
+- [Introduction](https://mybinder.org/v2/gh/TidierOrg/TidierCourse/HEAD?filepath=introduction/introduction.ipynb)
