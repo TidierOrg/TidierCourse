@@ -8,9 +8,9 @@ This course assumes a basic level of familiarity with programming but does not a
 
 ## Read
 
-- [Introduction](https://nbviewer.org/github/TidierOrg/TidierCourse/blob/main/introduction/introduction.ipynb)
+- [Introduction to Julia](https://nbviewer.org/github/TidierOrg/TidierCourse/blob/main/introduction/introduction.ipynb)
 
 
 ## Interactive Notebooks (with Binder)
 
-- [Introduction](https://mybinder.org/v2/gh/TidierOrg/TidierCourse/HEAD?filepath=introduction/introduction.ipynb)
+- [Introduction to Julia](https://mybinder.org/v2/gh/TidierOrg/TidierCourse/HEAD?filepath=introduction/introduction.ipynb)
