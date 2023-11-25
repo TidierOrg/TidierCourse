@@ -10,15 +10,17 @@ This course is currently under construction. Check back for updated content.
 
 ## Background
 
+Skip to the "Getting Started" section if you want to just start coding.
+
 - [Why Julia?](why-julia/why-julia.ipynb)
 - [Data Pipelines](data-pipelines/data-pipelines.ipynb)
-- Tidyverse and its descendants
+- [Tidyverse and its descendants](tidyverse-and-its-descendants/tidyverse-and-its-descendants.ipynb)
 - What is Tidier.jl?
+- Installing Julia and its packages
+- Accessing help
 
 ## Getting Started with Julia
 
-- Installing Julia and its packages
-- Accessing help
 - Values and vectors
 - Pipes
 
