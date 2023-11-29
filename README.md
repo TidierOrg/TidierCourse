@@ -13,9 +13,7 @@ This course is currently under construction. Check back for updated content.
 Skip to the "Getting Started" section if you want to just start coding.
 
 - [Why Julia?](why-julia/why-julia.ipynb)
-- [Data Pipelines](data-pipelines/data-pipelines.ipynb)
-- [Tidyverse and its descendants](tidyverse-and-its-descendants/tidyverse-and-its-descendants.ipynb)
-- What is Tidier.jl?
+- [What is Tidier.jl?](what-is-tidier-jl/what-is-tidier-jl.ipynb)
 - Installing Julia and its packages
 - Accessing help
 
@@ -56,3 +54,7 @@ Skip to the "Getting Started" section if you want to just start coding.
 ## Analyzing text data
 - Tokenizing text
 - Why common words are not useful (and how tf-idf can help)
+
+## Additional reading
+- [Data Pipelines](data-pipelines/data-pipelines.ipynb)
+- [Tidyverse and its descendants](tidyverse-and-its-descendants/tidyverse-and-its-descendants.ipynb)

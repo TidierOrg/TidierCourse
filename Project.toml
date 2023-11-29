@@ -1,10 +1,12 @@
 authors = ["Karandeep Singh", "Christoph Scheuch"]
 
 [deps]
-Tidier = "f0413319-3358-4bb0-8e7c-0c83523a93bd"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+Tidier = "f0413319-3358-4bb0-8e7c-0c83523a93bd"
+ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [compat]
-Tidier = "1.1"
 FileIO = "1.16"
+Tidier = "1.2"
 julia = "1.9"
