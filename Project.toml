@@ -8,9 +8,9 @@ Tidier = "f0413319-3358-4bb0-8e7c-0c83523a93bd"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [compat]
-CSV = "0.10.11"
-FileIO = "1.16"
+CSV = "0.10.12"
+FileIO = "1.16.2"
 PlutoUI = "0.7.55"
-Tidier = "1.2"
+Tidier = "1.2.1"
 ZipFile = "0.10.1"
-julia = "1.9"
+julia = "1.9, 1.10"
