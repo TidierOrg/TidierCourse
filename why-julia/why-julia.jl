@@ -5,6 +5,7 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 44afa588-b452-4068-8c0f-b86b20610ab3
+# ╠═╡ show_logs = false
 using Pkg; Pkg.activate(".."); Pkg.instantiate()
 
 # ╔═╡ 1a83143f-ee1b-4641-ac4b-6b2c814060bf
@@ -143,6 +144,6 @@ TableOfContents()
 # ╟─4a352113-70f2-45d5-9515-98f1fea00ad4
 # ╟─6cfa4f75-1aa3-4d4e-a81f-fb46adaf1b9a
 # ╟─a0f21837-8df9-42d5-8e55-1cafe478777d
-# ╟─44afa588-b452-4068-8c0f-b86b20610ab3
+# ╠═44afa588-b452-4068-8c0f-b86b20610ab3
 # ╠═1a83143f-ee1b-4641-ac4b-6b2c814060bf
 # ╠═08f6a882-f687-4a1a-83ca-f47399022fca
