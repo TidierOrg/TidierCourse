@@ -1,4 +1,5 @@
 # Tidier Course
+[![Glass Notebook](https://img.shields.io/badge/Docs-Glass%20Notebook-aquamarine.svg)](https://glassnotebook.io/r/xAwPW0dmgq1InOHQvsO9_/index.jl)
 
 <img src="https://raw.githubusercontent.com/TidierOrg/.github/main/profile/TidierOrg_logo.png" align="left" style="padding-right:10x;" width="150"/>
 
