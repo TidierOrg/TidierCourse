@@ -68,9 +68,17 @@ Similar to the tidyverse, Tidier.jl is also a (growing) collection of multiple p
 Before we talk any more about how Tidier.jl works, let's start with an example of Tidier.jl in action.
 """
 
+# ╔═╡ b756c2b7-ffe3-4f85-a849-aca4c33db4f5
+# If the subfolder "data" does not exist, create it
+
+if !("data" in readdir())
+	mkdir("data")
+end
+
 # ╔═╡ 9ba2aac6-fe6a-4a69-be4f-3c5eb0cee9bb
 # If not already downloaded,
 # Download the MITRE Synthea synthetic data zip file containing multiple .csv files
+
 if !("data.zip" in readdir("data"))
     location = download("https://mitre.box.com/shared/static/aw9po06ypfb9hrau4jamtvtz0e5ziucz.zip", "data/data.zip")
 end
@@ -2098,6 +2106,7 @@ version = "3.5.0+0"
 # ╟─2b49dad8-a00c-46f2-8c19-617292584e2c
 # ╠═bd1cbde7-42eb-45a1-9296-f17d3b9c76bc
 # ╠═d33059a4-4774-4c4a-89c8-cba7a8032acd
+# ╠═b756c2b7-ffe3-4f85-a849-aca4c33db4f5
 # ╠═9ba2aac6-fe6a-4a69-be4f-3c5eb0cee9bb
 # ╠═55b30bb8-41a0-48d3-8459-affcb46c5c07
 # ╠═8dfb4d74-b7bf-4143-a0a8-2206f7ac000f
