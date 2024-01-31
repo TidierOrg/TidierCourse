@@ -4,15 +4,14 @@
 using Markdown
 using InteractiveUtils
 
+# ╔═╡ 322a1b28-48a7-4df0-87a1-4259a6abc9ee
+using HypertextLiteral, PlutoUI; TableOfContents()
+
 # ╔═╡ 24eb2142-1d07-4412-842f-8aacbaf58c16
 begin
-	using HypertextLiteral
 	html_string = join(readlines("header.html"), "\n")
 	@htl """$(HypertextLiteral.Bypass(html_string))"""
 end
-
-# ╔═╡ 322a1b28-48a7-4df0-87a1-4259a6abc9ee
-using PlutoUI; TableOfContents()
 
 # ╔═╡ 2ce416e8-bb3d-11ee-3a9f-8dcc9a81f83c
 md"""
