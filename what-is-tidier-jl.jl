@@ -4,21 +4,20 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ daf77ffe-a06d-489b-9fff-ce84d377c86f
-begin
-	using HypertextLiteral
-	html_string = join(readlines("header.html"), "\n")
-	HypertextLiteral.@htl("""$(HypertextLiteral.Bypass(html_string))""")
-end
-
 # ╔═╡ 34de12cb-2e15-4f12-93e0-0a897ce5fa9c
- using PlutoUI; TableOfContents()
+ 	using HypertextLiteral, PlutoUI; TableOfContents()
 
 # ╔═╡ bd1cbde7-42eb-45a1-9296-f17d3b9c76bc
 using Tidier
 
 # ╔═╡ d33059a4-4774-4c4a-89c8-cba7a8032acd
 using ZipFile, CSV, Dates
+
+# ╔═╡ daf77ffe-a06d-489b-9fff-ce84d377c86f
+begin
+	html_string = join(readlines("header.html"), "\n")
+	HypertextLiteral.@htl("""$(HypertextLiteral.Bypass(html_string))""")
+end
 
 # ╔═╡ 9d465a8f-a418-4fe6-bebc-7f9c7aa632cf
 md"""
@@ -88,7 +87,7 @@ patients = CSV.read(zip_file.files[18], DataFrame);
 meds = CSV.read(zip_file.files[2], DataFrame);
 
 # ╔═╡ c3bfa1a8-2651-454a-846f-fd1b4527eac4
-@glimpse patients 
+@glimpse patients
 
 # ╔═╡ 5631379e-abaa-44cf-931e-6e5fa60e9353
 md"""
