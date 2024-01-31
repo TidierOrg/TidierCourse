@@ -45,7 +45,7 @@ For example, let's take a look at recent h2o/DuckDB benchmarks for data aggregat
 
 # ╔═╡ 9bf1568e-9e97-487a-94e7-70be221e6df3
 html"""
-<img src="https://raw.githubusercontent.com/TidierOrg/TidierCourse/main/why-julia/duckdb_benchmark.jpeg" style="width:50%"/>
+<img src="https://raw.githubusercontent.com/TidierOrg/TidierCourse/main/images/duckdb_benchmark.jpeg" style="width:50%"/>
 """
 
 # ╔═╡ 39662edf-f4f5-43f0-8626-4be8d990db35

@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.37
+# v0.19.36
 
 using Markdown
 using InteractiveUtils
@@ -74,12 +74,12 @@ Before we talk any more about how Tidier.jl works, let's start with an example o
 # ╔═╡ 9ba2aac6-fe6a-4a69-be4f-3c5eb0cee9bb
 # If not already downloaded,
 # Download the MITRE Synthea synthetic data zip file containing multiple .csv files
-if !("data.zip" in readdir())
-    location = download("https://mitre.box.com/shared/static/aw9po06ypfb9hrau4jamtvtz0e5ziucz.zip", "data.zip")
+if !("data.zip" in readdir("data"))
+    location = download("https://mitre.box.com/shared/static/aw9po06ypfb9hrau4jamtvtz0e5ziucz.zip", "data/data.zip")
 end
 
 # ╔═╡ 55b30bb8-41a0-48d3-8459-affcb46c5c07
-zip_file = ZipFile.Reader("data.zip")
+zip_file = ZipFile.Reader("data/data.zip")
 
 # ╔═╡ 8dfb4d74-b7bf-4143-a0a8-2206f7ac000f
 # Load the patients data frame
@@ -88,13 +88,6 @@ patients = CSV.read(zip_file.files[18], DataFrame);
 # ╔═╡ e1edcc50-574b-4c75-8b8f-6448b1d83013
 # Load the medications data frame
 meds = CSV.read(zip_file.files[2], DataFrame);
-
-# ╔═╡ 7ac88c9c-07f7-41c9-bc2d-a7451bad6ae2
-md"""
-## Let's take a look at the `patients` data frame
-
-Now that our datasets are loaded from the zip file, let's start by taking a look at the `patients` data frame. We can take get a general feel of the dimensions of the data frame, as well as the first few values for each column, using the `@glimpse()` macro.
-"""
 
 # ╔═╡ c3bfa1a8-2651-454a-846f-fd1b4527eac4
 @glimpse patients 
@@ -112,6 +105,13 @@ patients
 
 # ╔═╡ 0db72da1-0da9-422f-8b0b-2f4dc6701ca7
 @chain meds @clean_names()
+
+# ╔═╡ 7ac88c9c-07f7-41c9-bc2d-a7451bad6ae2
+md"""
+## Let's take a look at the `patients` data frame
+
+Now that our datasets are loaded from the zip file, let's start by taking a look at the `patients` data frame. We can take get a general feel of the dimensions of the data frame, as well as the first few values for each column, using the `@glimpse()` macro.
+"""
 
 # ╔═╡ f85fb11e-f0aa-4d99-9427-ed3ee4400f99
 patients_clean = @chain patients @clean_names();
@@ -163,12 +163,12 @@ TableOfContents()
 # ╠═55b30bb8-41a0-48d3-8459-affcb46c5c07
 # ╠═8dfb4d74-b7bf-4143-a0a8-2206f7ac000f
 # ╠═e1edcc50-574b-4c75-8b8f-6448b1d83013
-# ╟─7ac88c9c-07f7-41c9-bc2d-a7451bad6ae2
 # ╠═c3bfa1a8-2651-454a-846f-fd1b4527eac4
 # ╟─5631379e-abaa-44cf-931e-6e5fa60e9353
 # ╠═67848cc5-2338-4841-82d5-bc666518e0f6
 # ╠═5ebb00cc-cb45-4998-aa64-f9e2aebfab64
 # ╠═0db72da1-0da9-422f-8b0b-2f4dc6701ca7
+# ╟─7ac88c9c-07f7-41c9-bc2d-a7451bad6ae2
 # ╠═f85fb11e-f0aa-4d99-9427-ed3ee4400f99
 # ╠═73211d51-9be7-4614-81e2-0f0be7c60eff
 # ╠═a41f9a3e-74f0-4029-ab97-6ec6265542e4
