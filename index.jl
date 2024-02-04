@@ -15,11 +15,11 @@ end
 
 # ╔═╡ 2ce416e8-bb3d-11ee-3a9f-8dcc9a81f83c
 md"""
-Welcome to the **Tidier Course**, a course designed to introduce you to Julia and the Tidier.jl ecosystem for data analysis. The course consists of a series of Jupyter Notebooks so that you can both learn and practice how to write Julia code through real data science examples.
+Welcome to the **Tidier Course**, a course designed to introduce you to Julia and the Tidier.jl ecosystem for data analysis. The course consists of a series of Pluto Notebooks that will help you learn and practice how to write Julia code for data analysis through examples.
 
 This course assumes a basic level of familiarity with programming but does not assume any prior knowledge of Julia. This course emphasizes the parts of Julia required to read in, explore, and analyze data. Because this course is primarily oriented around data science, many important aspects of Julia will *not* be covered in this course.
 
-This course is currently under construction. Check back for updated content.
+This course is currently under construction. Please continue to check back for updated content.
 """
 
 # ╔═╡ 7f4c1edc-8d69-4be5-b940-385458e637c7
@@ -28,8 +28,8 @@ md"""
 
 Skip to the "Getting Started" section if you want to just start coding.
 
-- [Why Julia?]()
-- [What is Tidier.jl?]()
+- [Why Julia?](why-julia.html)
+- [What is Tidier.jl?](what-is-tidier-jl.html)
 - Installing Julia and its packages
 - Accessing help
 """
@@ -38,7 +38,7 @@ Skip to the "Getting Started" section if you want to just start coding.
 md"""
 ## Getting Started with Julia
 
-- Values and vectors
+- [Scalars and vectors](scalars-and-vectors.html)
 - Pipes
 """
 
