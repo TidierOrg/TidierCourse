@@ -4,454 +4,288 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ be7c6a52-b976-41ec-9be5-499cc785717b
-import Pkg; Pkg.status("Tidier")
-
-# ╔═╡ 34de12cb-2e15-4f12-93e0-0a897ce5fa9c
+# ╔═╡ 1be28f4a-f8b3-464a-af8e-0a37210ba529
  	using HypertextLiteral, PlutoUI; TableOfContents()
 
-# ╔═╡ bd1cbde7-42eb-45a1-9296-f17d3b9c76bc
+# ╔═╡ f49f4678-9bb0-4669-8143-3d4ece5b8225
 using Tidier
 
-# ╔═╡ d33059a4-4774-4c4a-89c8-cba7a8032acd
-using ZipFile # needed for unzipping files
+# ╔═╡ ceb1cf63-b845-4632-8181-8cacc2ca809e
+begin
+	# If the subfolder "data" does not exist, create it
+	if !("data" in readdir())
+		mkdir("data")
+	end
 
-# ╔═╡ daf77ffe-a06d-489b-9fff-ce84d377c86f
+	# If not already downloaded,
+	# Download the MITRE Synthea synthetic data zip file containing multiple .csv files
+
+	if !("data.zip" in readdir("data"))
+		download("https://mitre.box.com/shared/static/aw9po06ypfb9hrau4jamtvtz0e5ziucz.zip", "data/data.zip")
+	end
+
+	using ZipFile # needed for unzipping files
+	zip_file = ZipFile.Reader("data/data.zip")
+	
+	for file in zip_file.files[2:end]
+		seekstart(file)
+		file_name = str_replace(file.name, "csv/", "data/")
+		write(file_name, read(file))
+	end
+end
+
+# ╔═╡ ebfa8d00-0f94-11f0-2498-2b147fcb470f
 begin
 	html_string = join(readlines("header.html"), "\n")
 	HypertextLiteral.@htl("""$(HypertextLiteral.Bypass(html_string))""")
 end
 
-# ╔═╡ 9d465a8f-a418-4fe6-bebc-7f9c7aa632cf
+# ╔═╡ 4e85c59d-bfbd-44c2-83fa-a253449d9bd7
 md"""
-# What is `Tidier.jl`?
+# Loading `Tidier.jl`
+
+We will start off by loading the Tidier meta-package.
 """
 
-# ╔═╡ 2b49dad8-a00c-46f2-8c19-617292584e2c
+# ╔═╡ 3c42954e-ef62-4dd8-9bea-c98025dc3550
 md"""
+# Reading tabular data from files
 
-`Tidier.jl` is a package for analyzing tabular data inspired by R's tidyverse and crafted specifically for Julia. `Tidier.jl` is a *meta-package* in that its functionality comes from a series of smaller packages. Installing and using `Tidier.jl` brings the combined functionality of each of these packages to your fingertips.
+On this page, we will explore the different formats, in which we can read and write using TidierFiles.
 
-Here are the packages that make up the Tidier-verse.
+- CSV files: `read_csv` and `write_csv`
+- Tab-separated files: `read_tsv` and `write_tsv`
+- Fixed-width files: `read_fwf`
+- Excel files: `read_xlsx` and `write_xlsx`
+- Google sheets: `read_gsheet`
+- Arrow files: `read_arrow` and `write_arrow`
+- Parquet files: `read_parquet` and `write_parquet`
+- R files (RData and RDS): `read_rdata`
+- SAS and SAS export (XPT) files: `read_sas` and `write_sas`
+- STATA SAV and POR files: `read_sav` and `write_sav`
 
-- `TidierData.jl`: for transforming, aggregating, and reshaping dataframes
-- `TidierDB.jl`: like `TidierData` but for databases
-- `TidierPlots.jl`: for plotting data
-- `TidierCats.jl`: for working with categorical variables
-- `TidierDates.jl`: for working with dates
-- `TidierFiles.jl`: for reading files
-- `TidierIteration.jl`: for iterating over collections
-- `TidierStrings.jl`: for working with strings
-- `TidierText.jl`: for working with text
-- `TidierVest.jl`: for harvesting (scraping) website data
+Importantly, Tidier provides a consistent interface for reading and writing files across different formats. This means that you can generally use the same arguments when calling the above functions, with a few minor exceptions to handle differences (e.g., to specify which sheet in an Excel file).
 
-If you are new to the Tidier ecosystem, the number of packages can seem overwhelming. The good news is that for most analyses, you won't need to use functionality from all of the underlying packages.
+## Using `read_file` and `write_file`
 
-If you are new to Julia, this guide will walk you through each aspect of the data analysis lifecycle for tabular data. In doing so, you will be introduced to each of the packages so that you can understand the scope and role of each package in the ecosystem. Even if you are a seasoned Julia programmer, this guide will help you figure out when to reach for `Tidier.jl` when other tools may be perfectly adequate.
-"""
+Another key implication of the consistent API is that you don't actually need to remember the names of any of the individual file format functions. As long as the file extension matches the file format (e.g., Excel file with an `.xlsx` extension), you can use `read_file` and `write_file`.
 
-# ╔═╡ 784f0cbd-b1ac-4666-8c70-1eabd321989b
-md"""
-# When should I reach for `Tidier.jl`?
+!!! info "Make your life easy when reading and writing files"
 
-The answer depends on if you are new to data analysis in Julia, or if you are an experienced Julia user.
+	Unless the file extension does *not* match the format, you should default to using `read_file` and `write_file`.
 
-!!! green "For new users"
+# Local vs. online files
 
-	`Tidier.jl` provides a concise, consistent, and feature-complete set of tools for reading, writing, analyzing, and plotting tabular data. Because it is feature-complete, you can generally learn the `Tidier` way of doing things in Julia and have that serve as your mental model when performing data analysis. You may get the most value out of learning `TidierData.jl` and `TidierPlots.jl` for analyzing and plotting data frames as these implement a consistent domain-specific language across these two important domains, namely analysis and plotting.
+All of the Tidier file-reading functions operate on both local data and data files on the internet. For the file location, you can provide either a string pointing to a location on your local machine or a file on the internet.
 
-!!! info "For experienced users"
+# Working with files vs. databases
 
-	If you are already comfortable with `DataFrames.jl` (or one of its macro-based interfaces) and/or a plotting library, then learning the domain-specific language of `TidierData.jl` and `TidierPlots.jl` may not be as useful to you. The main advantage of learning `TidierData.jl` for experienced users is that the same syntax can be used to analyze databases (via `TidierDB.jl`). On the other hand, you may find many of the convenience functions within some of the smaller sub-packages like `TidierFiles.jl` (for reading/writing tabular files) and `TidierDates.jl` (for parsing dates) to be useful and time-saving.
-"""
-
-# ╔═╡ 57c7057a-d1e3-4977-bc84-a489b7ff7eff
-md"""
-# How do I get started with `Tidier.jl`?
-
-
-If you are a new user, you will be best-served by installing and using the `Tidier` meta-package directly.
-
-## Installing Tidier for the first time
-
-To install Tidier, launch Julia and type the following into the console.
-
-```
-]add Tidier
-```
-
-Note that pressing `]` launches the package console, where the command `add Tidier` can be used to install Tidier. Another way to install Tidier is to type the following into the Julia console:
-
-```julia
-import Pkg
-Pkg.add("Tidier")
-```
-
-This will install the latest version, with a few exceptions. If you already have an older version of Tidier installed, this will leave the older version installed. If you are working in Google Colab, this may install an older version of Tidier.
-
-To check which version of Tidier is installed, you can check that status of the Tidier package like this:
-
-```
-]st Tidier
-```
-
-You can also use the following code, which will show you the version of Tidier with which this course was last updated:
-"""
-
-# ╔═╡ a328abfc-8742-48ec-a938-861096d57390
-md"""
-
-## Installing a specific package version
-
-If you want to install a specific version of Tidier (e.g., 1.6.0), then you can use the following syntax in the package console:
-
-```
-]add Tidier@1.6.0
-```
-
-## Updating Tidier
-
-If you have an older version of Tidier, you can also update it to the latest version within the package syntax.
-
-```
-]up Tidier
-```
-
-## Loading Tidier into your namespace
-
-If Tidier will be your mainstay package for data analysis, then our recommended practice is to bring all of its exported functions and macros into your namespace using the following code:
-
-```julia
-using Tidier
-```
-
-!!! info "For experienced users"
-
-	Experienced users may be wary of bringing all of the package functions and macros into the namespace in case of potential conflicts with other packages. For example, the `@select` macro in TidierData has the same name as the `@select` macro in DataFramesMeta, which can introduce conflicts.
-
-	There are two alternatives for experienced users. The first is to use `import` rather than `using` so that all functions/macros need to be prefixed with `Tidier`, such as `Tidier.@select()`.
-
-	```julia
-	import Tidier
-	```
-
-	However, the second (and our recommended) practice for advanced users is to use or import the specific package(s) within the ecosystem rather than installing and using the Tidier meta-package. Loading specific packages (such as TidierDB) has the advantage of making installation a bit faster while reducing the dependency size.
-
-	The main downsides of relying on specific packages (such as TidierData and TidierPlots) is that you may need to manage package versions yourself (e.g., TidierPlots may need to updated before TidierData because TidierPlots depends on TidierData). Using the Tidier meta-package ensures that package versions remain updated and consistent with one another. The other downside to using individual packages (particularly TidierData and TidierDB) is that you will need to manually disambiguate which function or macro you are referring to when they have the same name (e.g., `TidierData.@select` versus `TidierDB.@select`). When you use `Tidier`, it automatically handles this ambiguity. You can use `@select`, and it will all the appropriate macro depending on the data type.
+The one downside of the `read_*` functions in this package is that they load the entire dataset into memory (in the form of a DataFrame object). When this is not an option, an alternative approach is to load the data into a database or to stream the data using DuckDB, which is supported functionality within TidierDB.
 
 """
 
-# ╔═╡ 98752fc0-67c3-4803-b85d-453c36db8578
+# ╔═╡ 80e33f2f-aaa7-4c0a-86e6-6ae546aea3ef
 md"""
-# Getting started with `Tidier.jl`
+# Prelude: downloading the MITRE Synthea Dataset
 
-Let's load Tidier and use it to analyze a real-world dataset. This will show you some features of Julia and introduce you to the Tidier ecosystem. The goal of this section is to show you the look and feel of the Tidier ecosystem - don't worry if you don't yet grasp what each macro or function is doing. We will come back to each of the steps in this analysis in subsequent sections of this course.
+!!! info "Download the MITRE Synthea dataset"
+
+	This page assumes that you have already downloaded the MITRE Synthea dataset. If you have not done it yet, please go to the [What is Tidier.jl](what-is-tidier-jl.html) page and follow the instruction on downloading the MITRE Synthea Dataset.
 """
 
-# ╔═╡ db76e609-5818-4a39-af78-b7175448e8a9
+# ╔═╡ 7a51b42e-2d6c-4455-a53a-f48c0887a128
 md"""
-## Loading Tidier
+# Reading a CSV file
 
-Let's go ahead and load Tidier. We will rely on the Tidier mete-package throughout this course for consistency.
+One way to read in a CSV file is using the bespoke `read_csv` function.
 """
 
-# ╔═╡ 15f5148d-2220-44ad-9bdc-cd4341602822
+# ╔═╡ 1b73013a-a5da-4848-88cd-932f85dedfd5
+patients_csv = read_csv("data/patients.csv")
+
+# ╔═╡ c1b8f185-79f4-45f5-8c9e-0199056222c8
 md"""
-## Downloading the MITRE Synthea dataset
-
-The Synthea dataset is collection of datasets containing multiple comma-separated value (`.csv`) files. Each file has multiple columns and rows. The columns represent variables specific to the focus of the data file, and the rows represent individual observations. The meaning of rows differs across data files. For example, in the `patients` data file, each row represents a single patient, whereas each row represents a medication in the `medications` dataset.
-
-Let's go aheead and create a `data` subfolder in which we will download the zip file (if it does not already exist).
+But, let's follow the advice we gave you earlier and demonstrate that `read_file` works just as well (and is preferred).
 """
 
-# ╔═╡ b756c2b7-ffe3-4f85-a849-aca4c33db4f5
-# If the subfolder "data" does not exist, create it
+# ╔═╡ 42a84206-d05c-4852-8ab7-de6d7317ccd1
+patients = read_file("data/patients.csv")
 
-if !("data" in readdir())
-	mkdir("data")
+# ╔═╡ d7f7221e-d744-49a5-b8dd-2f95c91c0af4
+md"""
+Are they the same? Yes, they are!
+"""
+
+# ╔═╡ 894d8e83-8b60-4992-b50d-5895e34e9f2c
+isequal(patients, patients_csv)
+
+# ╔═╡ 34e18c7c-16b4-4532-bae2-9de9d02e11c5
+md"""
+Now, let's save the csv file to some other formats. For demonstration purposes, we will save it to:
+
+- Excel
+- Parquet
+- Arrow
+
+"""
+
+# ╔═╡ 7a0edd17-d1c7-4027-83e4-69ebc00fdd8f
+md"""
+# Writing and reading Excel files
+
+Let's use the same `read_file` and `write_file` functions to work with Excel files.
+"""
+
+# ╔═╡ b2169a35-9587-47b3-94a5-4c95b5fd215c
+write_file(patients, "data/patients_excel.xlsx", overwrite = true)
+
+# ╔═╡ 5624c492-bf75-4877-b51b-743f6e68c4b0
+patients_excel = read_file("data/patients_excel.xlsx")
+
+# ╔═╡ 775f12ee-909c-4bfc-833e-f97e5e22dd20
+md"""
+## Do the CSV and Excel files contain the same content?
+
+Yes.
+"""
+
+# ╔═╡ a5a31a6a-a513-42da-974f-96ba6ffc6663
+isequal(patients_csv, patients_excel)
+
+# ╔═╡ 8dd4bf0a-b836-4dcd-8bca-54a5965fef5a
+md"""
+# Writing and reading Parquet files
+
+Let's use the same `read_file` and `write_file` functions to work with Parquet files.
+"""
+
+# ╔═╡ c2c45272-96c7-4ba4-ad79-e1c6cfcad9c1
+write_file(patients, "data/patients_parquet.parquet")
+
+# ╔═╡ 2462f9a4-d248-43cc-8e4b-7caf6edf134e
+patients_parquet = read_file("data/patients_parquet.parquet")
+
+# ╔═╡ 5c3bc77e-80ae-4e85-be12-cfc15e7fcb5a
+md"""
+## Do the CSV and Parquent files contain the same content?
+
+Yes.
+"""
+
+# ╔═╡ 2a42f468-739b-41a1-94dc-62cefb24ed37
+isequal(patients_csv, patients_parquet)
+
+# ╔═╡ c8e03aa1-e1f5-4c73-8c40-abbbe8544e91
+md"""
+# Writing and reading Arrow files
+
+Let's use the same `read_file` and `write_file` functions to work with Arrow files.
+"""
+
+# ╔═╡ 1674560b-9576-4e6c-ae28-cc5af8250b96
+write_file(patients, "data/patients_arrow.arrow")
+
+# ╔═╡ 5a413c6e-6bab-464b-ad80-b4a265e064de
+patients_arrow = read_file("data/patients_arrow.arrow")
+
+# ╔═╡ df3c2f95-8e1a-48bb-b219-26e9261ea1f5
+md"""
+## Do the CSV and Arrow files contain the same content?
+
+Yes, again.
+"""
+
+# ╔═╡ eb1af275-28e3-468d-abfd-800adde63887
+isequal(patients_csv, patients_arrow)
+
+# ╔═╡ 93f563aa-4541-45d2-a739-9548c1577fb8
+md"""
+# Which file format should we use?
+
+Hopefully, you can see that the goal of TidierFiles is that it's completely up to you.
+"""
+
+# ╔═╡ 9441ff3e-d485-4f8d-ab69-c064c90d4f95
+DataFrame(
+	CSV = filesize("data/patients.csv") / 1000,
+	Excel = filesize("data/patients_excel.xlsx") / 1000,
+	Parquet = filesize("data/patients_parquet.parquet") / 1000,
+	Arrow = filesize("data/patients_arrow.arrow") / 1000,
+)
+
+# ╔═╡ 6fe58ade-a353-465e-9d4e-867476db7527
+md"""
+# What if the `read_file` function is slow or doesn't work?
+
+On rare occasions, native file Julia I/O functions (which are wrapped by TidierFiles) may be slow or may not read data in correctly. In case you run into any issues with reading files with TidierFiles, an alternative option supported by TidierDB is to read files in using DuckDB's file I/O utilities.
+
+The syntax for reading files with TidierDB is slightly different. Rather than using `read_file`, you will use `db_table(connect(duckdb()), "file_path_here")`.
+
+DuckDB's file utilities currently support:
+* CSV and TSV files
+* Parquet files
+* JSON files
+* Iceberg table
+* Delta
+* S3 tables from AWS or Google Cloud
+* Google Sheets spreadsheet link
+
+The DuckDB approach has two advantages over reading in files using `read_file`:
+* You can work with larger-than-memory files, because any data transformation/aggregation macros called prior to `@collect` are translated into SQL before the dataset is loaded in memory.
+* You have the option to stream in data using `@collect(stream = true)`
+"""
+
+# ╔═╡ 1ba23656-5fa6-4c10-995f-074a3ab05250
+patients_duckdb = @chain begin
+	db_table(connect(duckdb()), "data/patients_parquet.parquet") 
+	@collect()
 end
 
-# ╔═╡ 9ba2aac6-fe6a-4a69-be4f-3c5eb0cee9bb
-# If not already downloaded,
-# Download the MITRE Synthea synthetic data zip file containing multiple .csv files
-
-if !("data.zip" in readdir("data"))
-	download("https://mitre.box.com/shared/static/aw9po06ypfb9hrau4jamtvtz0e5ziucz.zip", "data/data.zip")
-end
-
-# ╔═╡ 612045b9-7240-4860-8d54-c14f4ac769ff
+# ╔═╡ fc4a3e6b-9ee2-4f25-92b9-fac6f33f909b
 md"""
-## Extracting datasets from a zip file
+## Do the CSV files read using TidierFiles and TidierDB contain the same content?
 
-Next, we will load the `ZipFile` package. This package is not part of the Tidier ecosystem. It will help us extract synthetic datasets encoded as `.csv` files contained within a zip file. Let's first download the zip file.
+Technically, no.
 """
 
-# ╔═╡ 55b30bb8-41a0-48d3-8459-affcb46c5c07
-# store the multiple .csv files within `data.zip` to the `zip_file` variable
-zip_file = ZipFile.Reader("data/data.zip")
+# ╔═╡ c19f4cfc-b5b3-42bc-809c-a3b5ec1347f9
+isequal(patients_csv, patients_duckdb)
 
-# ╔═╡ f171d2b9-02f3-4184-a907-7359c596efad
+# ╔═╡ 7e2af5a4-de58-411f-b7bf-d6388356229a
 md"""
-Now we will extract the files by writing them to the `data` subfolder.
+But if you look carefully, the main differences between the two files have to do with data types, which can be harmonized. It's important to be aware of this difference when using DuckDB for file I/O in `Tidier.jl`.
 """
 
-# ╔═╡ 3cd096c3-c7be-4f5a-a7d5-e16864c75289
-# Extract the csv files to the `data` subfolder
+# ╔═╡ 7ad84940-3a91-4129-b584-f9397e954b32
+@glimpse(patients_duckdb)
 
-for file in zip_file.files[2:end]
-	seekstart(file)
-	file_name = str_replace(file.name, "csv/", "data/")
-	write(file_name, read(file))
-end
+# ╔═╡ 3e83d7ea-a8df-4fc9-a667-bf76e5f31c13
+@glimpse(patients_csv)
 
-# ╔═╡ 6eea11f8-b996-414a-acca-83da581c8448
+# ╔═╡ 5f5dd027-9853-44ec-ae60-87a639257c7c
 md"""
-Now that all the files are saved to the `data` subfolder, let's read in the `data/patients.csv` file to the `patients` variable in Julia.
+# Writing files using DuckDB
 
-By default, Julia will always print the contents of the returned values (the data frame in this case). To disable this, you can add a semi-colon to the end of the line. In general, for exploratory data analysis we want to see the contents of the returned values even when assigning them to a variable, so we will omit the semi-colon here.
+`Tidier.jl` (via TidierDB) not only supports reading files using DuckDB - it also supports writing files using DuckDB. If you want to use DuckDB's file I/O utilities to write files, make sure to call `write_file` without calling `@collect`, because `@collect` will load the result into a data frame, after which subsequent `write_file` calls will invoke the TidierFiles I/O functions.
 """
 
-# ╔═╡ 6bcd9625-3a81-4406-8ab5-578940022960
-patients = read_csv("data/patients.csv")
-
-# ╔═╡ ab7ff644-8e01-4ff5-9230-fa450e24e459
-md"""
-There are two macros we can use to explore the dataset: `@glimpse` and `@summary`.
-"""
-
-# ╔═╡ 42ddf12d-c3fb-4b6c-b900-c622e55cdda1
-@glimpse(patients, width = 75)
-
-# ╔═╡ 2788705e-6bda-4119-b70c-8552b4d3ee36
-@summary(patients)
-
-# ╔═╡ fc468158-9d24-4fd8-84b7-2099a4808b24
-md"""
-Note that in the `patients` data frame, each row represents a patient. We can infer this by the fact that the `Id` values, presumably the patient identifiers, look unique on initial glance.
-
-## Cleaning up the column names
-
-You may also notice that there are subtle inconsistencies in the column names, which are quite common in data analysis. One inconsistency is that `Id` has a capital letter followed by a lower case letter, whereas `SSN` (another identifier) has all capital letters. Another inconsistency is that `BIRTHDATE` and `DEATHDATE` are single words, whereas `HEALTHCARE_COVERAGE` has two words separated by underscores. Another common issue that arises is that column names may contain spaces, which also can be inconvenient.
-
-One way to standardize the column names is to use the `@clean_names` macro.
-
-!!! info "Best practice: Cleaning the column names with `@clean_names`"
-
-	After reading in a file, standardizing the column names using `@clean_names` should be considered a best practice. In this course, we will nearly always start by applying `@clean_names` anytime a new dataset is loaded. Its use is optional but recommended.
-"""
-
-# ╔═╡ c3bfa1a8-2651-454a-846f-fd1b4527eac4
-patients_clean = @clean_names(patients);
-
-# ╔═╡ 5631379e-abaa-44cf-931e-6e5fa60e9353
-md"""
-Notice that we used `;` at the end of the above expression to suppress the printing of the `patients_clean` data frame. Let's examine its contents below. We can see that all column names have been converted to lowercase. While this was the only change in this particular dataframe, `@clean_names` can address many other column name issues such as replacing spaces with underscores.
-"""
-
-# ╔═╡ 67848cc5-2338-4841-82d5-bc666518e0f6
-@glimpse(patients_clean, width = 75)
-
-# ╔═╡ 5ebb00cc-cb45-4998-aa64-f9e2aebfab64
-md"""
-We will do the same thing for medications, including loading in the csv file and cleaning the column names. This time, we will take advantage of the `@chain` macro, which allows us to chain together multiple operations. The `@chain` macro comes from the `Chain.jl` package and is automatically re-exported by `Tidier.jl`.
-
-Here, we are using the single-line syntax of `@chain`, in which functions and macros separated by spaces are processed from left to right, where the output of each function/macro on the left is treated as the input of the function/macro on the right.
-"""
-
-# ╔═╡ 0db72da1-0da9-422f-8b0b-2f4dc6701ca7
-meds_clean = @chain read_csv("data/medications.csv") @clean_names()
-
-# ╔═╡ ab93ea5c-1ecb-400c-a94e-92733c3ed9c2
-@glimpse(meds_clean, width = 75)
-
-# ╔═╡ d8d775a0-68d0-4d07-9f15-1159070561c7
-@summary(meds_clean)
-
-# ╔═╡ 4e469486-c86a-4799-81cb-9196948e1157
-md"""
-Here, it looks like each row contains a medication assigned to a patient. Many medications have a non-missing value for both a `start` date and for a `stop` date, which means they are no longer taking that medication. On the other hand, 2713 rows have missing values for a `stop` date (out of a total of 56,430 rows), meaning that only a small percentage of medications in this dataset are currently active.
-"""
-
-# ╔═╡ 7ac88c9c-07f7-41c9-bc2d-a7451bad6ae2
-md"""
-# Let's use `Tidier.jl` to answer a question
-
-## How many medications are taken by the patients in the `patients` data frame, on average?
-
-To answer this question, we first need to check whether each row in the `patients` dataset indeed represents a unique patient. We can do this by subsetting the distinct rows of the dataset, and then counting the number of rows.
-"""
-
-# ╔═╡ f85fb11e-f0aa-4d99-9427-ed3ee4400f99
-@chain patients_clean begin
-	@distinct(id)
-	@count()
-end
-
-# ╔═╡ 7c95b335-bfe1-46ac-9952-cc3465d6edfc
-md"""
-The original `patients_clean` dataset and the transformed dataset both have `1163` rows. This means that the rows do indeed represent unique patients.
-
-Knowing that the rows in the `patients_clean` dataset represents unique patients  and the `meds_clean` data represents one row per medication, let's first determine how many meds are taken by each patient in the `meds_clean` data frame.
-"""
-
-# ╔═╡ 8359a81a-d4b8-4c49-a401-a43ec8f9f07a
-meds_clean_count = 
-	@chain meds_clean begin
-	@filter(!ismissing(start) && ismissing(stop)) # med is still active
-	@count(patient) # count unique rows at the patient level, save result to `n`
-	@rename(num_meds = n) # rename the count column `n` to `num_meds`
-	@arrange(desc(num_meds)) # arrange in descending order of count
-	@rename(id = patient) # rename the patient identifier to `id`
-end
-
-# ╔═╡ 7927ebad-9c34-486c-bb43-81038b277170
-@summary(meds_clean_count)
-
-# ╔═╡ 16fb0743-81c8-4584-be27-58e794e96e9e
-md"""
-As we can see from the output of `@summary`, the highest number of active medications for a patient in the `meds_clean` dataset is 13, the minimum number of medications is 1, and the mean number of medications is just over 3.
-
-While `@summary` gives us the mean value, we can also use Tidier's data aggregation macro `@summarize` (or `@summarise`) to calculate this same values.
-"""
-
-# ╔═╡ d447b493-af9b-41d4-8067-24b91dcd21ff
-@chain meds_clean_count begin
-	@summarize(mean_num_meds = mean(num_meds),
-			   min_num_meds = minimum(num_meds),
-			   max_num_meds = maximum(num_meds))
-end
-
-# ╔═╡ f0741757-5398-41cf-abac-b846d6f9f701
-md"""
-We could have also calculated the mean using `@summarize(meds_clean_count, mean_num_meds = mean(num_meds))` since the `@summarize` macro expects a data frame as the first argument. However, the Tidier style is to start analyses with `@chain` so that additional data transformations can be easily added on.
-
-By default, `@chain` inserts the value returned by each function/macro into the first argument of the next function/macro.
-"""
-
-# ╔═╡ e102b1e7-6d68-4034-b1d8-0e1278ace56e
-md"""
-## But is `3.32883` the answer we are looking for?
-
-No. The `meds_clean` data frame only captures patients who are taking at least one medication. The clue is that the minimum number of active medications in the `meds_clean_count` data frame was `1`. Surely there must be patients who take no medications.
-
-To evaluate this, let's join the `patients_clean` data frame with `meds_clean_count` and examine the `num_meds` column. If all patients in the `patients_clean` data frame are also represented in the `meds_clean_count` data frame, then there should be no missing values for `num_meds`.
-"""
-
-# ╔═╡ 597f559a-abd5-4ceb-b23f-1e32b7e5e78b
+# ╔═╡ cdcee377-8e6e-442c-b607-83087c8069eb
 @chain begin
-	@left_join(patients_clean, meds_clean_count)
-	@count(num_meds)
+	db_table(connect(duckdb()), "data/patients_parquet.parquet") 
+	write_file("data/patients_duckdb.parquet")
 end
 
-# ╔═╡ 4cb280c9-0f4b-4173-8858-6c1253496d6a
+# ╔═╡ 95f53d80-a32d-4fb3-babb-2c892aa29e68
 md"""
-While most patients in this dataset are taking at least one medication, `348` patients have a `missing` value for `num_meds` after joining the two datasets, which means that they are not on medications.
+# Summary
 
-## Answer: Doing the math correctly
-
-To correctly calculate the mean, we have to replace these missing values with zeros because a `missing` value for `num_meds` means that patients do not take medications. If we are to calculate the average number of medications, then we need to correctly account for patients not taking medications (i.e., counting these zeros for `num_meds`).
-
-We will add a `@count(num_meds)` at the end of the chain to confirm that the `missing` values were correctly replaced with zeros.
-
-!!! info "Note: Starting a chain with `@chain begin`"
-
-	In previous code, we have always started a chain with the syntax `@chain df begin`, where `df` represents a data frame. You can alternatively begin a chain with `@chain begin`, which is especially handy when the initial value is lengthy to type, such as when starting a chain with a `@left_join`.
-"""
-
-# ╔═╡ 6ea5a632-0c97-4a8d-90ea-7add7dc99304
-@chain begin
-	@left_join(patients_clean, meds_clean_count)
-	@mutate(num_meds = replace_missing(num_meds, 0))
-	@count(num_meds)
-end
-
-# ╔═╡ f62652d2-43f9-4728-8ff1-856bc26a530e
-md"""
-The 348 `missing` values are now zeros, so let's recalculate the average.
-"""
-
-# ╔═╡ 6f1d3c1f-6c77-4474-a69f-bb663c27b6cc
-@chain begin
-	@left_join(patients_clean, meds_clean_count)
-	@mutate(num_meds = replace_missing(num_meds, 0))
-	@summarize(mean_num_meds = mean(num_meds),
-			   min_num_meds = minimum(num_meds),
-			   max_num_meds = maximum(num_meds))
-end
-
-# ╔═╡ 773fba31-b9ad-4db6-a70b-55fc7dd18372
-md"""
-## The correct answer is...
-
-`2.33276` medications.
-
-!!! exercise "Exercise"
-
-	Can you calculate the median number of medications (instead of the mean)?
-"""
-
-# ╔═╡ 43616636-b655-48c1-877f-9426e848c380
-md"""
-# Plotting the distribution
-
-Instead of merely calculating the mean, we can also plot the mean along with the entire distribution by combining the capabilities of `TidierData` and `TidierPlots`.
-"""
-
-# ╔═╡ 6488f93c-fe14-47d6-a198-7df608619325
-@chain begin
-	@left_join(patients_clean, meds_clean_count)
-	@mutate(num_meds = 
-			    if_else(ismissing(num_meds), 0, num_meds))
-	@aside mean_num_meds = mean(_.num_meds) # store the mean to a global variable
-	ggplot()
-	geom_histogram(@aes(x = num_meds))
-	geom_vline(xintercept = mean_num_meds) # access the global variable here
-	labs(x = "Number of medications", y = "Count")
-	theme_dark()
-end
-
-# ╔═╡ ebf46f6f-a733-49c4-9b27-468dd40b95ae
-md"""
-!!! exercise "Exercise"
-
-	Eagle-eyed readers will notice the `@aside` macro and the `_` placeholder macro. These are exported from the `Chain.jl` package. Look for the `Chain.jl` documentation online.
-
-	What is the purpose of the `@aside` macro? What is the `_` doing in the code below?
-
-# Putting it all together
-
-In general, you should break up your analysis into as many steps as needed to ensure that the intent of each step is clear to yourself and others.
-
-However, `Tidier.jl` gives you the ability to chain together complex analyses in a visually readable form. For the purposes of illustration, let's recreate the entire analysis above in a single chain.
-"""
-
-# ╔═╡ a41f9a3e-74f0-4029-ab97-6ec6265542e4
-@chain meds_clean begin
-	@rename(id = patient)
-	@filter(!ismissing(start) && ismissing(stop))
-	@count(id)
-	@rename(num_meds = n)
-	@left_join(patients_clean, _)
-	@mutate(num_meds = replace_missing(num_meds, 0))
-	@summarize(mean_num_meds = mean(num_meds),
-			   min_num_meds = minimum(num_meds),
-			   max_num_meds = maximum(num_meds))
-end
-
-# ╔═╡ 1cbafaf4-55d2-43d6-8d1d-dbaeba6c878d
-md"""
-# Learning `Tidier.jl` (and Julia) with baby steps
-
-If you've been carefully looking through the code, following along, and everything is making sense, that's great! But if you looked at the above analysis and have more questions than answers, we've got you covered. This purpose of the next several sections of this guide is to walk you through `Tidier.jl` with baby steps. Consider this page the whirlwind tour showing a snapshot of some of the functionality.
-
-The next section on reading data will cover the details, starting with how to read in a data frame from a file.
+In this lesson, you've learned how to read in tabular data using `read_file`, how to write tabular data (using `write_file`), and how to use DuckDB's file I/O utilities using TidierDB's `db_table(connect(duckdb()), "file_path_here")` syntax. 
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 HypertextLiteral = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
-Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Tidier = "f0413319-3358-4bb0-8e7c-0c83523a93bd"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
@@ -469,7 +303,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.3"
 manifest_format = "2.0"
-project_hash = "bf2d132c143e3db9fa6d4427f75fbec8323d2e4a"
+project_hash = "7822de0551df073b9347b33e6fd9870d6515f2ba"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -2674,9 +2508,9 @@ version = "0.2.1"
 
 [[deps.Tidier]]
 deps = ["Reexport", "TidierCats", "TidierDB", "TidierData", "TidierDates", "TidierFiles", "TidierIteration", "TidierPlots", "TidierStrings", "TidierText", "TidierVest"]
-git-tree-sha1 = "e9377630c8467e5351d1a7d88911c07a1c7df17f"
+git-tree-sha1 = "5cdf1d3b301d1da628573493931842b4fac0bea6"
 uuid = "f0413319-3358-4bb0-8e7c-0c83523a93bd"
-version = "1.6.0"
+version = "1.6.1"
 
 [[deps.TidierCats]]
 deps = ["CategoricalArrays", "DataFrames", "Reexport", "Statistics"]
@@ -3063,58 +2897,46 @@ version = "3.6.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═daf77ffe-a06d-489b-9fff-ce84d377c86f
-# ╟─34de12cb-2e15-4f12-93e0-0a897ce5fa9c
-# ╟─9d465a8f-a418-4fe6-bebc-7f9c7aa632cf
-# ╟─2b49dad8-a00c-46f2-8c19-617292584e2c
-# ╟─784f0cbd-b1ac-4666-8c70-1eabd321989b
-# ╟─57c7057a-d1e3-4977-bc84-a489b7ff7eff
-# ╠═be7c6a52-b976-41ec-9be5-499cc785717b
-# ╟─a328abfc-8742-48ec-a938-861096d57390
-# ╟─98752fc0-67c3-4803-b85d-453c36db8578
-# ╟─db76e609-5818-4a39-af78-b7175448e8a9
-# ╠═bd1cbde7-42eb-45a1-9296-f17d3b9c76bc
-# ╟─15f5148d-2220-44ad-9bdc-cd4341602822
-# ╠═b756c2b7-ffe3-4f85-a849-aca4c33db4f5
-# ╠═9ba2aac6-fe6a-4a69-be4f-3c5eb0cee9bb
-# ╟─612045b9-7240-4860-8d54-c14f4ac769ff
-# ╠═d33059a4-4774-4c4a-89c8-cba7a8032acd
-# ╠═55b30bb8-41a0-48d3-8459-affcb46c5c07
-# ╟─f171d2b9-02f3-4184-a907-7359c596efad
-# ╠═3cd096c3-c7be-4f5a-a7d5-e16864c75289
-# ╟─6eea11f8-b996-414a-acca-83da581c8448
-# ╠═6bcd9625-3a81-4406-8ab5-578940022960
-# ╟─ab7ff644-8e01-4ff5-9230-fa450e24e459
-# ╠═42ddf12d-c3fb-4b6c-b900-c622e55cdda1
-# ╠═2788705e-6bda-4119-b70c-8552b4d3ee36
-# ╟─fc468158-9d24-4fd8-84b7-2099a4808b24
-# ╠═c3bfa1a8-2651-454a-846f-fd1b4527eac4
-# ╟─5631379e-abaa-44cf-931e-6e5fa60e9353
-# ╠═67848cc5-2338-4841-82d5-bc666518e0f6
-# ╟─5ebb00cc-cb45-4998-aa64-f9e2aebfab64
-# ╠═0db72da1-0da9-422f-8b0b-2f4dc6701ca7
-# ╠═ab93ea5c-1ecb-400c-a94e-92733c3ed9c2
-# ╠═d8d775a0-68d0-4d07-9f15-1159070561c7
-# ╟─4e469486-c86a-4799-81cb-9196948e1157
-# ╟─7ac88c9c-07f7-41c9-bc2d-a7451bad6ae2
-# ╠═f85fb11e-f0aa-4d99-9427-ed3ee4400f99
-# ╟─7c95b335-bfe1-46ac-9952-cc3465d6edfc
-# ╠═8359a81a-d4b8-4c49-a401-a43ec8f9f07a
-# ╠═7927ebad-9c34-486c-bb43-81038b277170
-# ╟─16fb0743-81c8-4584-be27-58e794e96e9e
-# ╠═d447b493-af9b-41d4-8067-24b91dcd21ff
-# ╟─f0741757-5398-41cf-abac-b846d6f9f701
-# ╟─e102b1e7-6d68-4034-b1d8-0e1278ace56e
-# ╠═597f559a-abd5-4ceb-b23f-1e32b7e5e78b
-# ╟─4cb280c9-0f4b-4173-8858-6c1253496d6a
-# ╠═6ea5a632-0c97-4a8d-90ea-7add7dc99304
-# ╟─f62652d2-43f9-4728-8ff1-856bc26a530e
-# ╠═6f1d3c1f-6c77-4474-a69f-bb663c27b6cc
-# ╟─773fba31-b9ad-4db6-a70b-55fc7dd18372
-# ╟─43616636-b655-48c1-877f-9426e848c380
-# ╠═6488f93c-fe14-47d6-a198-7df608619325
-# ╟─ebf46f6f-a733-49c4-9b27-468dd40b95ae
-# ╠═a41f9a3e-74f0-4029-ab97-6ec6265542e4
-# ╟─1cbafaf4-55d2-43d6-8d1d-dbaeba6c878d
+# ╟─ebfa8d00-0f94-11f0-2498-2b147fcb470f
+# ╟─1be28f4a-f8b3-464a-af8e-0a37210ba529
+# ╟─4e85c59d-bfbd-44c2-83fa-a253449d9bd7
+# ╠═f49f4678-9bb0-4669-8143-3d4ece5b8225
+# ╟─3c42954e-ef62-4dd8-9bea-c98025dc3550
+# ╟─80e33f2f-aaa7-4c0a-86e6-6ae546aea3ef
+# ╟─ceb1cf63-b845-4632-8181-8cacc2ca809e
+# ╟─7a51b42e-2d6c-4455-a53a-f48c0887a128
+# ╠═1b73013a-a5da-4848-88cd-932f85dedfd5
+# ╟─c1b8f185-79f4-45f5-8c9e-0199056222c8
+# ╠═42a84206-d05c-4852-8ab7-de6d7317ccd1
+# ╟─d7f7221e-d744-49a5-b8dd-2f95c91c0af4
+# ╠═894d8e83-8b60-4992-b50d-5895e34e9f2c
+# ╟─34e18c7c-16b4-4532-bae2-9de9d02e11c5
+# ╟─7a0edd17-d1c7-4027-83e4-69ebc00fdd8f
+# ╠═b2169a35-9587-47b3-94a5-4c95b5fd215c
+# ╠═5624c492-bf75-4877-b51b-743f6e68c4b0
+# ╟─775f12ee-909c-4bfc-833e-f97e5e22dd20
+# ╠═a5a31a6a-a513-42da-974f-96ba6ffc6663
+# ╟─8dd4bf0a-b836-4dcd-8bca-54a5965fef5a
+# ╠═c2c45272-96c7-4ba4-ad79-e1c6cfcad9c1
+# ╠═2462f9a4-d248-43cc-8e4b-7caf6edf134e
+# ╟─5c3bc77e-80ae-4e85-be12-cfc15e7fcb5a
+# ╠═2a42f468-739b-41a1-94dc-62cefb24ed37
+# ╟─c8e03aa1-e1f5-4c73-8c40-abbbe8544e91
+# ╠═1674560b-9576-4e6c-ae28-cc5af8250b96
+# ╠═5a413c6e-6bab-464b-ad80-b4a265e064de
+# ╟─df3c2f95-8e1a-48bb-b219-26e9261ea1f5
+# ╠═eb1af275-28e3-468d-abfd-800adde63887
+# ╠═93f563aa-4541-45d2-a739-9548c1577fb8
+# ╠═9441ff3e-d485-4f8d-ab69-c064c90d4f95
+# ╟─6fe58ade-a353-465e-9d4e-867476db7527
+# ╠═1ba23656-5fa6-4c10-995f-074a3ab05250
+# ╟─fc4a3e6b-9ee2-4f25-92b9-fac6f33f909b
+# ╠═c19f4cfc-b5b3-42bc-809c-a3b5ec1347f9
+# ╟─7e2af5a4-de58-411f-b7bf-d6388356229a
+# ╠═7ad84940-3a91-4129-b584-f9397e954b32
+# ╠═3e83d7ea-a8df-4fc9-a667-bf76e5f31c13
+# ╟─5f5dd027-9853-44ec-ae60-87a639257c7c
+# ╠═cdcee377-8e6e-442c-b607-83087c8069eb
+# ╟─95f53d80-a32d-4fb3-babb-2c892aa29e68
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
