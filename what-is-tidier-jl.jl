@@ -2676,7 +2676,7 @@ version = "0.2.1"
 deps = ["Reexport", "TidierCats", "TidierDB", "TidierData", "TidierDates", "TidierFiles", "TidierIteration", "TidierPlots", "TidierStrings", "TidierText", "TidierVest"]
 git-tree-sha1 = "e9377630c8467e5351d1a7d88911c07a1c7df17f"
 uuid = "f0413319-3358-4bb0-8e7c-0c83523a93bd"
-version = "1.6.0"
+version = "1.6.1"
 
 [[deps.TidierCats]]
 deps = ["CategoricalArrays", "DataFrames", "Reexport", "Statistics"]
