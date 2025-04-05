@@ -337,6 +337,12 @@ No. The `meds_clean` data frame only captures patients who are taking at least o
 To evaluate this, let's join the `patients_clean` data frame with `meds_clean_count` and examine the `num_meds` column. If all patients in the `patients_clean` data frame are also represented in the `meds_clean_count` data frame, then there should be no missing values for `num_meds`.
 """
 
+# ╔═╡ 597f559a-abd5-4ceb-b23f-1e32b7e5e78b
+@chain begin
+	@left_join(patients_clean, meds_clean_count)
+	@count(num_meds)
+end
+
 # ╔═╡ 4cb280c9-0f4b-4173-8858-6c1253496d6a
 md"""
 While most patients in this dataset are taking at least one medication, `348` patients have a `missing` value for `num_meds` after joining the two datasets, which means that they are not on medications.
@@ -352,15 +358,25 @@ We will add a `@count(num_meds)` at the end of the chain to confirm that the `mi
 	In previous code, we have always started a chain with the syntax `@chain df begin`, where `df` represents a data frame. You can alternatively begin a chain with `@chain begin`, which is especially handy when the initial value is lengthy to type, such as when starting a chain with a `@left_join`.
 """
 
+# ╔═╡ 6ea5a632-0c97-4a8d-90ea-7add7dc99304
+@chain begin
+	@left_join(patients_clean, meds_clean_count)
+	@mutate(num_meds = replace_missing(num_meds, 0))
+	@count(num_meds)
+end
+
 # ╔═╡ f62652d2-43f9-4728-8ff1-856bc26a530e
 md"""
 The 348 `missing` values are now zeros, so let's recalculate the average.
 """
 
-# ╔═╡ 597f559a-abd5-4ceb-b23f-1e32b7e5e78b
+# ╔═╡ 6f1d3c1f-6c77-4474-a69f-bb663c27b6cc
 @chain begin
 	@left_join(patients_clean, meds_clean_count)
-	@count(num_meds)
+	@mutate(num_meds = replace_missing(num_meds, 0))
+	@summarize(mean_num_meds = mean(num_meds),
+			   min_num_meds = minimum(num_meds),
+			   max_num_meds = maximum(num_meds))
 end
 
 # ╔═╡ 773fba31-b9ad-4db6-a70b-55fc7dd18372
@@ -430,22 +446,6 @@ If you've been carefully looking through the code, following along, and everythi
 
 The next section on reading data will cover the details, starting with how to read in a data frame from a file.
 """
-
-# ╔═╡ 6ea5a632-0c97-4a8d-90ea-7add7dc99304
-@chain begin
-	@left_join(patients_clean, meds_clean_count)
-	@mutate(num_meds = replace_missing(num_meds, 0))
-	@count(num_meds)
-end
-
-# ╔═╡ 6f1d3c1f-6c77-4474-a69f-bb663c27b6cc
-@chain begin
-	@left_join(patients_clean, meds_clean_count)
-	@mutate(num_meds = replace_missing(num_meds, 0))
-	@summarize(mean_num_meds = mean(num_meds),
-			   min_num_meds = minimum(num_meds),
-			   max_num_meds = maximum(num_meds))
-end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2674,7 +2674,7 @@ version = "0.2.1"
 
 [[deps.Tidier]]
 deps = ["Reexport", "TidierCats", "TidierDB", "TidierData", "TidierDates", "TidierFiles", "TidierIteration", "TidierPlots", "TidierStrings", "TidierText", "TidierVest"]
-git-tree-sha1 = "e9377630c8467e5351d1a7d88911c07a1c7df17f"
+git-tree-sha1 = "5cdf1d3b301d1da628573493931842b4fac0bea6"
 uuid = "f0413319-3358-4bb0-8e7c-0c83523a93bd"
 version = "1.6.1"
 
