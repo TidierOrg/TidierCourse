@@ -65,14 +65,13 @@ patients = @chain read_file("data/patients.csv") @clean_names
 md"""
 # The verbs of data science
 
-There are 5 verbs which enable you to do 80% of all analyses that can be done using a single data frame. We refer to them as verbs because they change some aspect of our dataset, and once we familiarize ourselves with their purpose, we can start using them in sentences... as verbs.
+There are 4 verbs which enable you to do 80% of all analyses that can be done using a single data frame. We refer to them as verbs because they change some aspect of our dataset, and once we familiarize ourselves with their purpose, we can start using them in sentences... as verbs.
 
-These 5 verbs are:
+These 4 verbs are:
 
 * `@select`: for selecting columns
 * `@mutate`: for creating new columns or modifying existing ones
 * `@summarize` or `@summarise`: for summarizing multiple rows into a single row
-* `@slice`: for slicing rows based on row number
 * `@filter`: for filtering *in* rows based on criteria
 
 Each of these verbs take a data frame as the first argument. For example, selecting the county column can be done as follows.
