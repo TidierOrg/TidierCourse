@@ -18,4 +18,36 @@ pluto-cell pluto-output {
 pluto-cell pluto-runarea {
   bottom: -17px;
 }
+
+button {
+  border: 1px solid white;
+  color: #fff;
+  background-color: #333;
+  font-family: "Alegreya Sans", "Trebuchet MS", sans-serif;
+  margin: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background-color: #555;
+}
+
+@media (prefers-color-scheme: light) {
+    button {
+    border: 1px solid #333;
+    color: #333;
+    background-color: #ccc;
+    font-family: "Alegreya Sans", "Trebuchet MS", sans-serif;
+    margin: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  button:hover {
+    background-color: #eee;
+  }
+}
 </style>
