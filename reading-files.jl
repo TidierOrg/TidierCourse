@@ -76,7 +76,7 @@ Another key implication of the consistent API is that you don't actually need to
 
 # Local vs. online files
 
-All of the Tidier file-reading functions operate on both local data and data files on the internet. For the file location, you can provide either a string pointing to a location on your local machine or a file on the internet.
+All of the Tidier file-reading functions operate on both local data and data files on the internet. For the file location, you can provide a string pointing to either a location on your local machine or a file on the internet.
 
 # Working with files vs. databases
 
