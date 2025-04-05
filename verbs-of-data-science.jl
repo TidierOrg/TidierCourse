@@ -85,7 +85,7 @@ Each of these verbs take a data frame as the first argument. For example, select
 md"""
 ## Chaining verbs
 
-Because each of these verbs takes a data frame as the first argument, these verbs are readily structured into a pipeline (or chain) using the `@chain` macro. When using the `@chain` macro, each expression's result is inserted into the first argument of te following one.
+Because each of these verbs takes a data frame as the first argument, these verbs are readily structured into a pipeline (or chain) using the `@chain` macro. When using the `@chain` macro, each expression's result is inserted into the first argument of the following one.
 
 So if we wanted to lowercase the string after selecting the `county`, we would naturally express this as a pipeline starting with `@select` followed by `@mutate`.
 """
@@ -123,7 +123,7 @@ end
 
 # ╔═╡ 7fed6f55-0195-4725-945b-c563fe78502e
 md"""
-This naturally leads to questions about how scoping works within `Tidier.jl` and how to refer to variables outside of data frames. One helpful way to think about scope within `Tidier.jl` is that by default, bare varables (like `county`) operate in "data frame scope," where we assume by default that they refer to columns within a data frame.
+This naturally leads to questions about how scoping works within `Tidier.jl` and how to refer to variables outside of data frames. One helpful way to think about scope within `Tidier.jl` is that by default, bare variables (like `county`) operate in "data frame scope," where we assume by default that they refer to columns within a data frame.
 
 To refer to variables outside of the data frame, we have to use interpolation.
 """
@@ -142,7 +142,7 @@ county = "LOS ANGELES"
 
 # ╔═╡ f980e41e-1b0a-48ee-8a76-5411f3cab9f8
 md"""
-We could express interpolate this value into a `Tidier.jl` macro as follows, where we start the chain with `@eval` and then prefix the `county` with `$` to refer to the value of `county` *outside of the data frame scope*.
+We could express interpolating this value into a `Tidier.jl` macro as follows, where we start the chain with `@eval` and then prefix the `county` with `$` to refer to the value of `county` *outside of the data frame scope*.
 """
 
 # ╔═╡ 659ceb7a-e4ef-487b-937c-a2cb5047b6b8
@@ -155,7 +155,7 @@ end
 md"""
 ## Auto-vectorization
 
-Going back to the `@mutate(county = str_to_lower(county))` expression, experienced users may also wonder with the function is written as `str_to_lower(county)` rather than `str_to_lower.(county)`. Usually, adding a period to the end of a function call "vectorizes" it so that it runs on vectors (i.e., columns of data) rather than on single values.
+Going back to the `@mutate(county = str_to_lower(county))` expression, experienced users may also wonder why the function is written as `str_to_lower(county)` rather than `str_to_lower.(county)`. Usually, adding a period to the end of a function call "vectorizes" it so that it runs on vectors (i.e., columns of data) rather than on single values.
 
 `Tidier.jl` performs auto-vectorization, such that the function call is actually converted to `str_to_lower.(county)` before it is run. TidierData contains a lookup table of functions that are not to be vectorized -- all other function calls are vectorized by default.
 
@@ -409,7 +409,7 @@ end
 
 # ╔═╡ bd9c49fe-b670-43a9-998c-278481894937
 md"""
-## Mutating multple columns
+## Mutating multiple columns
 
 Similar to `@select`, you can mutate multiple columns using `across(columns, functions)` syntax.
 
@@ -424,7 +424,7 @@ end
 
 # ╔═╡ cec3e10d-b77e-4639-a567-b8262ecd7bc7
 md"""
-By default, column names are suffixed wtih `_function`. If you want to name the columns, you need to define the functions before calling them inside of `across()`.
+By default, column names are suffixed with `_function`. If you want to name the columns, you need to define the functions before calling them inside of `across()`.
 """
 
 # ╔═╡ f3cee948-23ff-45a2-9bd5-42c713bda9d9
@@ -524,9 +524,9 @@ end
 md"""
 ## Slicing the last 5 rows
 
-In `Tidier.jl`, `n()` is a helper function that stands for the number of rows. We can use it inside of `@mutate` and `@summarize`, and we can also is it in `@slice` to refer to the number of rows.
+In `Tidier.jl`, `n()` is a helper function that stands for the number of rows. We can use it inside of `@mutate` and `@summarize`, and we can also use it in `@slice` to refer to the number of rows.
 
-One we we can slice the last 5 rows is to use `@slice(n()-4:n())`. Note the order of operations in this expression: `n()-4` takes higher priority than `:`.
+One way we can slice the last 5 rows is to use `@slice(n()-4:n())`. Note the order of operations in this expression: `n()-4` takes higher priority than `:`.
 """
 
 # ╔═╡ 81df963e-04b0-4e70-a578-db1d171c2058
@@ -704,7 +704,7 @@ end
 md"""
 ## Using `@filter` to slice
 
-Just like all macros have access to the `n()` helper function to access the number of rows, all macros also have access to the `row_number()` helpful function, which returns the row number for each row. For ungrouped data, this is simply the row number for the entire data frame. For grouped data, this is assigned separately for each group (similar to `n()`).
+Just like all macros have access to the `n()` helper function to access the number of rows, all macros also have access to the `row_number()` helpful function, which returns the row number for each row. For ungrouped data, this is simply the row number over the entire data frame. For grouped data, this is assigned separately for each group (similar to `n()`).
 """
 
 # ╔═╡ 2fd790d0-3290-4211-b087-781c3bd87f04

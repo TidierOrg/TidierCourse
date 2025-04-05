@@ -47,7 +47,9 @@ Here are the packages that make up the Tidier-verse.
 
 If you are new to the Tidier ecosystem, the number of packages can seem overwhelming. The good news is that for most analyses, you won't need to use functionality from all of the underlying packages.
 
-If you are new to Julia, this guide will walk you through each aspect of the data analysis lifecycle for tabular data. In doing so, you will be introduced to each of the packages so that you can understand the scope and role of each package in the ecosystem. Even if you are a seasoned Julia programmer, this guide will help you figure out when to reach for `Tidier.jl` when other tools may be perfectly adequate.
+If you are new to Julia, this guide will walk you through each aspect of the data analysis lifecycle for tabular data. In doing so, you will be introduced to each of the packages so that you can understand the scope and role of each package in the ecosystem. 
+
+Even if you are a seasoned Julia programmer, this guide will help you figure out when to reach for `Tidier.jl` when other tools may be perfectly adequate.
 """
 
 # ╔═╡ 784f0cbd-b1ac-4666-8c70-1eabd321989b
@@ -87,9 +89,9 @@ import Pkg
 Pkg.add("Tidier")
 ```
 
-This will install the latest version, with a few exceptions. If you already have an older version of Tidier installed, this will leave the older version installed. If you are working in Google Colab, this may install an older version of Tidier.
+This will install the latest version. (With a few exceptions: If you already have an older version of Tidier installed, this will leave the older version installed. If you are working in Google Colab, this may install an older version of Tidier.)
 
-To check which version of Tidier is installed, you can check that status of the Tidier package like this:
+To check which version of Tidier is installed, you can check the status of the Tidier package like this:
 
 ```
 ]st Tidier
@@ -101,7 +103,7 @@ You can also use the following code, which will show you the version of Tidier w
 # ╔═╡ a328abfc-8742-48ec-a938-861096d57390
 md"""
 
-## Installing a specific package version
+### Installing a specific package version
 
 If you want to install a specific version of Tidier (e.g., 1.6.0), then you can use the following syntax in the package console:
 
@@ -137,7 +139,7 @@ using Tidier
 
 	However, the second (and our recommended) practice for advanced users is to use or import the specific package(s) within the ecosystem rather than installing and using the Tidier meta-package. Loading specific packages (such as TidierDB) has the advantage of making installation a bit faster while reducing the dependency size.
 
-	The main downsides of relying on specific packages (such as TidierData and TidierPlots) is that you may need to manage package versions yourself (e.g., TidierPlots may need to updated before TidierData because TidierPlots depends on TidierData). Using the Tidier meta-package ensures that package versions remain updated and consistent with one another. The other downside to using individual packages (particularly TidierData and TidierDB) is that you will need to manually disambiguate which function or macro you are referring to when they have the same name (e.g., `TidierData.@select` versus `TidierDB.@select`). When you use `Tidier`, it automatically handles this ambiguity. You can use `@select`, and it will all the appropriate macro depending on the data type.
+	The main downsides of relying on specific packages (such as TidierData and TidierPlots) is that you may need to manage package versions yourself (e.g., TidierPlots may need to updated before TidierData because TidierPlots depends on TidierData). Using the Tidier meta-package ensures that package versions remain updated and consistent with one another. The other downside to using individual packages (particularly TidierData and TidierDB) is that you will need to manually disambiguate which function or macro you are referring to when they have the same name (e.g., `TidierData.@select` versus `TidierDB.@select`). When you use `Tidier`, it automatically handles this ambiguity. You can use `@select`, and it will call the appropriate macro depending on the data type.
 
 """
 
@@ -152,7 +154,7 @@ Let's load Tidier and use it to analyze a real-world dataset. This will show you
 md"""
 ## Loading Tidier
 
-Let's go ahead and load Tidier. We will rely on the Tidier mete-package throughout this course for consistency.
+Let's go ahead and load Tidier. We will rely on the Tidier meta-package throughout this course for consistency.
 """
 
 # ╔═╡ 15f5148d-2220-44ad-9bdc-cd4341602822
@@ -269,7 +271,7 @@ meds_clean = @chain read_csv("data/medications.csv") @clean_names()
 
 # ╔═╡ 4e469486-c86a-4799-81cb-9196948e1157
 md"""
-Here, it looks like each row contains a medication assigned to a patient. Many medications have a non-missing value for both a `start` date and for a `stop` date, which means they are no longer taking that medication. On the other hand, 2713 rows have missing values for a `stop` date (out of a total of 56,430 rows), meaning that only a small percentage of medications in this dataset are currently active.
+Here, it looks like each row contains a medication assigned to a patient. Many medications have a non-missing value for both a `start` date and for a `stop` date, which means the patient is no longer taking that medication. On the other hand, 2713 rows have missing values for a `stop` date (out of a total of 56,430 rows), meaning that only a small percentage of medications in this dataset are currently active.
 """
 
 # ╔═╡ 7ac88c9c-07f7-41c9-bc2d-a7451bad6ae2
@@ -442,7 +444,7 @@ end
 md"""
 # Learning `Tidier.jl` (and Julia) with baby steps
 
-If you've been carefully looking through the code, following along, and everything is making sense, that's great! But if you looked at the above analysis and have more questions than answers, we've got you covered. This purpose of the next several sections of this guide is to walk you through `Tidier.jl` with baby steps. Consider this page the whirlwind tour showing a snapshot of some of the functionality.
+If you've been carefully looking through the code, following along, and everything is making sense, that's great! But if you looked at the above analysis and have more questions than answers, we've got you covered. The purpose of the next several sections of this guide is to walk you through `Tidier.jl` with baby steps. Consider this page the whirlwind tour showing a snapshot of some of the functionality.
 
 The next section on reading data will cover the details, starting with how to read in a data frame from a file.
 """
