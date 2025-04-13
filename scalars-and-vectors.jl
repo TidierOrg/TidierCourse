@@ -22,7 +22,7 @@ md"""
 md"""
 
 ## Scalars
-In Julia, an individual value is referred to as a "scalar", and a collection of values is referred to a "vector". Scalars are a type of data structure, not a data type. As a result, scalars can refer to individual values that are *either* numbers, strings, or dates.
+In Julia, an individual value is referred to as a "scalar", and a collection of values is referred to as a "vector". Scalars are a type of data structure, not a data type. As a result, scalars can refer to individual values that are *either* numbers, strings, or dates (among other types).
 
 ### Numbers as scalars
 
@@ -89,6 +89,8 @@ But what happens if we try to multiply the string "2" with the number `3`?
 
 # ╔═╡ b81146d2-aff6-4fc7-886a-cc35068d8889
 md"""
+### Our first error!
+
 !!! danger "Don't panic!"
 	This error message is expected!
 
@@ -123,7 +125,7 @@ However, if you really needed to know whether they are identical in both their c
 
 # ╔═╡ d0a88c7e-f270-4498-972e-195a71f6a039
 md"""
-	To summarize, we learned that scalars refer to individual values that can belong to different data types. Some common data types are integers, floating point numbers, and strings.
+To summarize, we learned that scalars refer to individual values that can belong to different data types. Some common data types are integers, floating point numbers, and strings.
 """
 
 # ╔═╡ 0b79dfed-b08d-4e1d-b78f-ef9522768b68
@@ -178,7 +180,7 @@ typeof([2, 3.5])
 md"""
 ### String vectors
 
-Defining a string vector is as easy as ensuring that each value in the vector is a string. If we our typing out the values of the string (known as a "string literal"), then we can accomplish this by surrounding the value with double-quotations (`""`).
+Defining a string vector is as easy as ensuring that each value in the vector is a string. If we are typing out the values of the string (known as a "string literal"), then we can accomplish this by surrounding the value with double-quotations (`""`).
 
 Importantly, single-quotations are used to denote individual characters of a string, so `"2"` is not the same thing as `'2'` in Julia. Specifically, strings in Julia are considered to be collections of characters.
 """
@@ -252,7 +254,6 @@ In this particular example, we had the option to call `typeof()` or `typeof.()`.
 
 # ╔═╡ bb00f75a-8501-4c2c-887b-aa1855f12cf4
 md"""
-### Our first error!
 
 !!! danger "Don't panic!"
 	This error was expected! Why?
@@ -272,7 +273,7 @@ md"""
 !!! note
 	When applying dot-vectorization to operators, we place the `.` *before* the name of the function. Operators are special types of functions that can be inserted in between their arguments, such as the `+` operator in `a + b` resulting in `a .+ b`.
 
-Let's revisit the error above for a moment. The error stated `MethodError: no method matching +(::Vector{Int64}, ::Int64)`. The first time (or even the tentht time) you see this error, it can be quite disconcerting. 
+Let's revisit the error above for a moment. The error stated `MethodError: no method matching +(::Vector{Int64}, ::Int64)`. The first time (or even the tenth time) you see this error, it can be quite disconcerting. 
 
 There's no need to worry when you see this error. Method errors are quite common in Julia because of the heavy reliance of Julia on the programming paradigm of "multiple dispatch". This means that functions like `+` and `*` have been separately defined for different types of arguments. When Julia comes across a combination of arguments for which it doesn't have a function defined, it results in a `MethodError`.
 
