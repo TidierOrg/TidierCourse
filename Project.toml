@@ -1,0 +1,15 @@
+authors = ["Karandeep Singh", "Christoph Scheuch"]
+
+[deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+Tidier = "f0413319-3358-4bb0-8e7c-0c83523a93bd"
+ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
+
+[compat]
+PlutoUI = "0.7.55"
+Tidier = "1.6.1"
+ZipFile = "0.10.1"
+julia = "1.11"
