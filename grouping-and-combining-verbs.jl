@@ -4,13 +4,13 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 6166d982-4826-43f0-b08b-3898bc7b1909
+# ╔═╡ c585065d-cd35-4477-ba87-e773a3679be0
  	using HypertextLiteral, PlutoUI; TableOfContents()
 
-# ╔═╡ 9542ec18-7db2-45e2-8ee2-7b761225e106
+# ╔═╡ d3f0ab14-e870-41c6-8c51-2f036d74307f
 using Tidier
 
-# ╔═╡ 195c748a-7487-477e-b937-c4250a7791aa
+# ╔═╡ c70e1da9-7660-47c9-a402-dd0dcd6e238e
 begin
 	# If the subfolder "data" does not exist, create it
 	if !("data" in readdir())
@@ -34,25 +34,25 @@ begin
 	end
 end
 
-# ╔═╡ b62ef720-1119-11f0-188c-c339c6461038
+# ╔═╡ 4f031ad6-18ba-11f0-3446-b5b9b8418e01
 begin
 	html_string = join(readlines("header.html"), "\n")
 	HypertextLiteral.@htl("""$(HypertextLiteral.Bypass(html_string))""")
 end
 
-# ╔═╡ 32e83bd6-e5a3-4f86-9b97-acbfe683b0e2
+# ╔═╡ c35e7828-c429-44fc-ab89-10c153f7e23c
 md"""
-# Verbs of data science
+# Grouping and combining verbs
 """
 
-# ╔═╡ c6ff7302-4168-4725-8985-8d14a267f556
+# ╔═╡ 57f3ea99-a205-4cf4-8785-72c26fa35e62
 md"""
 # Loading `Tidier.jl`
 
 We will start off by loading the Tidier meta-package.
 """
 
-# ╔═╡ 9aa83c02-034b-45ce-bbc6-793f970ec7a9
+# ╔═╡ f5ddc893-298a-4061-a917-3253c2501b68
 md"""
 # Prelude: downloading the MITRE Synthea Dataset
 
@@ -63,681 +63,174 @@ md"""
 After downloading the dataset, we will read in the `data/patients.csv` file into a data frame.
 """
 
-# ╔═╡ 86c1fb86-a866-4205-8cee-a267d81410d9
+# ╔═╡ 5ebae093-4e31-4630-ad73-1f31e4a3f004
 patients = @chain read_file("data/patients.csv") @clean_names
 
-# ╔═╡ 93f456b0-7632-4f9b-a74a-a668676c79dd
+# ╔═╡ 7dd7bcd8-8aca-4ffb-a0a1-5a33feb037ea
 md"""
-# The verbs of data science
+# Grouping to apply data verbs by group
 
-There are 5 verbs which enable you to do 80% of all analyses that can be done using a single data frame. We refer to them as verbs because they change some aspect of our dataset, and once we familiarize ourselves with their purpose, we can start using them in sentences... as verbs.
+Now that you've learned the 5 "basic" data verbs, and how to chain them together using `@chain`, the last thing to learn before mastering basic exploratory data analysis is grouping, which is achieved using the `@group_by` macro. 
 
-These 5 verbs are:
+All of the above macros respect grouping assignments made by `@group_by`, so if you are running into unusual behavior, it's often because you're data are grouped differently than you expected.
 
-* `@select`: for selecting columns
-* `@mutate`: for creating new columns or modifying existing ones
-* `@summarize` or `@summarise`: for summarizing multiple rows into a single row
-* `@slice`: for slicing rows based on row number
-* `@filter`: for filtering *in* rows based on criteria
+!!! info "Important grouping behavior to know"
 
-There is another important adverb that we will learn in the next section on [Grouping and combining verbs](grouping-and-combining-verbs.html), `@group_by`, which modifies the behavaior of these 5 verbs. Taken together, the combination of `@group_by` and the above 5 verbs will allow you to express complex analytical ideas in a concise way.
+	In `Tidier.jl`, `@group_by` applies one ore more grouping columns to the data frame, producing a `GroupedDataFrame`.
 
-Each of these verbs take a data frame as the first argument. For example, selecting the county column can be done as follows.
+	Using `@summarize` peels off one layer of grouping. Other transformations **do not** remove grouping. If you were grouped by one column, then applying `@summarize` will result in an ungrouped data frame. If you were grouped by two or more columns, then the result will be a grouped data frame with the last layer of grouping removed.
+
+	You can always manually ungroup by calling `@ungroup`, which will remove all grouping. Calling `@group_by` on an already-grouped data frame will overwrite the grouping with the new grouping columns.
 """
 
-# ╔═╡ f02bcd5f-c6e1-4afa-acf6-09f6d6470515
-@select(patients, county)
-
-# ╔═╡ fbb1ba79-0c17-4d5b-8c8a-ecf1c9e426dc
+# ╔═╡ b22377c2-ff5f-45ed-86c1-05d45044b05f
 md"""
-## Chaining verbs
+## Example of `@group_by` followed by `@summarize`
 
-Because each of these verbs takes a data frame as the first argument, these verbs are readily structured into a pipeline (or chain) using the `@chain` macro. When using the `@chain` macro, each expression's result is inserted into the first argument of the following one.
-
-So if we wanted to lowercase the string after selecting the `county`, we would naturally express this as a pipeline starting with `@select` followed by `@mutate`.
+What if we wanted to know the number of people who live in each county? We could use `@group_by` to group the data by county, and `number = n()` to create a new column called `number` containing the number of rows in each group. This is the same `n()` helper function we used to `@slice`.
 """
 
-# ╔═╡ 7276c00f-994a-4cb7-a458-135525ec1c75
+# ╔═╡ 76b1a4fc-2aa6-4fe4-b77b-64ad59380455
 @chain patients begin
-	@select(county)
-	@mutate(county = str_to_lower(county))
+	@group_by(county)
+	@summarize(number = n())
 end
 
-# ╔═╡ e3ea31fe-3fa2-475a-a307-1a4161320e50
+# ╔═╡ 77694086-11a1-4e39-9f5a-2727ae47835a
 md"""
-This chain is easily expressed as a sentence:
+## Sorting results with `@arrange`
 
-* Start with the `patients` data frame
-* Select the `county` column
-* Mutate the `county` column to be lower case string values.
-
-You may see examples of other code online where people choose to express this without a `@chain` like this: `@mutate(@select(patients, county), county = str_to_lower(county))`.
-
-While this produces the same result, it is much less readable since you have to read it from the inside out, rather than from left-to-right.
-
-## Tidy expressions
-
-Experienced Julia users may scratch their heads when seeing the expression `@mutate(county = str_to_lower(county))` for several reasons. First, they wonder why `county`, which refers to a column in the dataset, is written as `county` rather than as `:county`, which is a favored design choice of other macro-based data analysis packages. The use of `county` as a bare variable name is referred to within the Tidier ecosytem as a **tidy expression**.
-
-The reason why `Tidier.jl` uses tidy expressions is that they are concise and also allow for multiple columns to be referred to via a unit-range-like style.
+You might be bothered by the fact that the numbers are not sorted from highest to lowest. This is easily fixed using `@arrange`. By default, `@arrange` sorts from lowest to highest (or alphabetical order for strings). Surrounding the column with `desc()` indicates it should be sorted in descending order. You can sort by multiple columns in any combination of ascending and descending order.
 """
 
-# ╔═╡ 50e73b83-1cd2-484a-9089-b4883db5a673
+# ╔═╡ 44c82662-8594-47c4-905d-5a1392faa6e1
 @chain patients begin
-	# select columns from `first` to `last` and `city` to `county`
-	@select(first:last, city:county)
+	@group_by(county)
+	@summarize(number = n())
+	@arrange(desc(number))
 end
 
-# ╔═╡ 7fed6f55-0195-4725-945b-c563fe78502e
+# ╔═╡ 61c38292-e1c5-48bd-bc69-8a984cfb376b
 md"""
-This naturally leads to questions about how scoping works within `Tidier.jl` and how to refer to variables outside of data frames. One helpful way to think about scope within `Tidier.jl` is that by default, bare variables (like `county`) operate in "data frame scope," where we assume by default that they refer to columns within a data frame.
-
-To refer to variables outside of the data frame, we have to use interpolation.
+We can also calculate mean expenses using similar syntax.
 """
 
-# ╔═╡ 522804b5-9cfc-40b1-a8db-700b8f6dba90
-md"""
-## Interpolation to refer to variables outside of the data frame
-
-`Tidier.jl` supports two forms of interpolation: `!!` (or "bang-bang") interpolation and `@eval`-based interpolation. While you can read more about bang-bang interpolation in the TidierData.jl documentation, we currently recommend `@eval`-based interpolation because it is uniformly supported across macros in the `Tidier.jl` ecosystem. The reliance on `@eval` comes with a slight performance penalty, which is why we are continuing to work on improving support for bang-bang interpolation.
-
-Let's say we had a variable `county` countaining the value "LOS ANGELES", and we wanted to update the `county` column in the `patients` data frame to refer to a lowercased version of the `county` variable.
-"""
-
-# ╔═╡ 41e905e7-41b1-4d6b-ad74-7e09186cd86a
-county = "LOS ANGELES"
-
-# ╔═╡ f980e41e-1b0a-48ee-8a76-5411f3cab9f8
-md"""
-We could express interpolating this value into a `Tidier.jl` macro as follows, where we start the chain with `@eval` and then prefix the `county` with `$` to refer to the value of `county` *outside of the data frame scope*.
-"""
-
-# ╔═╡ 659ceb7a-e4ef-487b-937c-a2cb5047b6b8
-@eval @chain patients begin
-	@select(county)
-	@mutate(county = str_to_lower($county))
-end
-
-# ╔═╡ 60a74100-597d-4f18-a673-1773921e5698
-md"""
-## Auto-vectorization
-
-Going back to the `@mutate(county = str_to_lower(county))` expression, experienced users may also wonder why the function is written as `str_to_lower(county)` rather than `str_to_lower.(county)`. Usually, adding a period to the end of a function call "vectorizes" it so that it runs on vectors (i.e., columns of data) rather than on single values.
-
-`Tidier.jl` performs auto-vectorization, such that the function call is actually converted to `str_to_lower.(county)` before it is run. TidierData contains a lookup table of functions that are not to be vectorized -- all other function calls are vectorized by default.
-
-If you knew that `str_to_lower` should be vectorized, you could choose to vectorize it within TidierData. However, we generally discourage vectorizing expressions (unless you need to override a default setting not to vectorize a given function) because letting `Tidier.jl` handle vectorization enables the use of consistent syntax when working with data frame (with TidierData) and databases (with TidierDB).
-
-The default settings can be overridden. If you do *not* want a function to be vectorized, you can prefix the function call with a `~`, such as `~str_to_lower(county)`. In this case, that would produce an error because `str_to_lower` operates on scalars and relies on being vectorized to operate on columns of data.
-"""
-
-# ╔═╡ 75b0d884-138c-470a-9b83-0b06192b0f2d
+# ╔═╡ 87f29fce-bee6-4059-a2de-936fe0daffc5
 @chain patients begin
-	@select(county)
-	@mutate(county = str_to_lower.(county))
+	@group_by(county)
+	@summarize(mean_expenses_thousands = mean(healthcare_expenses) / 1_000)
+	@arrange(desc(mean_expenses_thousands))
 end
 
-# ╔═╡ 00eb7c61-396e-418e-8f65-ef3e0edda775
+# ╔═╡ 7e8a9b15-3f87-41c6-a33b-6db2022b8d86
 md"""
-With those preliminaries out of the way, let's dive into each of the verbs of data science.
+## Grouping by multiple columns
 
-# `@select` for selecting columns
+What if you wanted to group by `county` and `gender`? The same code would work, but because you grouped by two variables and applied `@summarize` once, grouping by `gender` was removed, but the data remains grouped by `county`.
 
-`@select` is used for selecting columns. Within the Tidier.jl ecosystem, it can also be used to modify columns that are being selected. `@select` supports a number of different syntaxes.
-
-Before we use select columns, let's glimpse the `patients` data frame to remind ourselves of the column names.
+The fact that the data frame is grouped is fairly obvious from the way grouped data frames are printed.
 """
 
-# ╔═╡ e7a7a573-82fe-463d-a497-ea432a46a660
-@glimpse(patients, width = 75)
-
-# ╔═╡ 20bfb084-fc99-4e10-8f42-ac67bfc6205b
-md"""
-How would we select the `city`, `state`, and `county` columns?
-
-## Individually by name
-"""
-
-# ╔═╡ a6d8a0fa-dc6f-4c41-9434-3255e2d8135e
+# ╔═╡ 8adc0f46-a160-429d-b68b-eae54d3b80cf
 @chain patients begin
-	@select(city, state, county)
+	@group_by(county, gender)
+	@summarize(number = n())
+	@arrange(desc(number))
 end
 
-# ╔═╡ bf4aae5b-dd1c-4d32-aa05-1d38222844b4
+# ╔═╡ 83e46102-e3e4-4902-9641-1857e6d2e037
 md"""
-## As a named unit range
+## Ungrouping
+
+If we want to see more of the data, it can be easier to visualize when the data frame is ungrouped. We can do that using `@ungroup`.
 """
 
-# ╔═╡ 7b6213c0-1e15-4bff-bfef-f70f83541d3f
+# ╔═╡ ace63f4d-597a-4035-beec-5fccb17d78cf
 @chain patients begin
-	@select(city:county)
+	@group_by(county, gender)
+	@summarize(number = n())
+	@arrange(desc(number))
+	@ungroup()
 end
 
-# ╔═╡ d1eb7693-0f9c-4752-a864-b43cf57ed445
+# ╔═╡ 59d841a0-7006-43af-9aaf-4a65a879efbc
 md"""
-## As a numbered unit range
+# Logging complex data transformations
+
+As you can see, `Tidier.jl` has some nuanced behavior, particularly with respect to grouping. It can be helpful to use some form of logging to detect and prevent errors, especially silent ones.
+
+!!! info "Best practice: set "log" to true!"
+
+	TidierData comes with a `"log"` option that can be set to `true` to enable logging. Even though it is set to `false` by default, we recommend that users set it to `true`. For the remainder of this notebook, we will leave it enabled.
 """
 
-# ╔═╡ 519a98b5-00e5-443a-bd30-0e73aa2cf2c4
+# ╔═╡ 7e7e09a6-0f71-410e-a57e-f60fa57d0dee
+TidierData_set("log", true)
+
+# ╔═╡ 68f8d011-863f-4388-b058-989ea3f97e74
+md"""
+Let's repeat the same analysis with logging enabled.
+"""
+
+# ╔═╡ 265b461b-78d0-460f-ba9f-9d6959faea35
 @chain patients begin
-	@select(18:20)
+	@group_by(county, gender)
+	@summarize(number = n())
+	@arrange(desc(number))
+	@ungroup()
 end
 
-# ╔═╡ ca5bacc1-d50c-439a-8241-16783c7d909a
+# ╔═╡ a7ca9c08-1a0e-4b50-b5d4-3f6f4c6f26c5
 md"""
-## Using a predicate function based on column names
+# Creating groups on the fly
 
-A predicate function is one that returns a value of `true` or `false` and in this context is based on the column names.
+What if we wanted to calculate the mean health expenses based on whether someone had died or not (based on missing values for deathdate)?
+
+You might think that you need to first create a `vital_status` column using `@mutate` before you can group by it, but TidierData actually supports the creation of grouping variables on the fly.
 """
 
-# ╔═╡ a34ddb7d-3d43-462d-8af8-03fe081a004a
-columns_to_select = ["city", "state", "county"]
-
-# ╔═╡ 7d4f56fa-9b95-4d18-a29d-2d5885516b8b
-@eval @chain patients begin
-	@select(in($columns_to_select))
-end
-
-# ╔═╡ 109d0ea3-49d2-4a43-925c-84887eb4675c
-md"""
-Using a function can be particularly helpful when the column names you want to select have similar prefixes or suffixes. For example, if we want to select the two columns beginning with `healthcare_`, we could use the following syntax.
-
-Note that in the following example, `starts_with` is merely an alias for Julia's `startswith` -- using either is fine.
-"""
-
-# ╔═╡ dbcd03ce-54f6-446a-ad21-86527ae7150b
+# ╔═╡ ab5afb2d-c58a-4794-b992-f4255c5c8455
 @chain patients begin
-	@select(starts_with("healthcare_"))
+	@group_by(vital_status = if_else(ismissing(deathdate), "alive", "dead"))
+	@summarize(mean_expenses_thousands = mean(healthcare_expenses) / 1_000)
+	@arrange(desc(mean_expenses_thousands))
 end
 
-# ╔═╡ 99d477ab-af3b-4b67-a54c-889434780644
+# ╔═╡ f5a047fe-96dc-47b0-8e0e-bb9b7ac6f9ae
 md"""
-You can also mix and match these styles.
+# `@count` as a shortcut for `@group_by()` + `@summarize` + `@ungroup`
+
+Grouping, summarizing, and ungrouping is such a common pattern that there is a shortcut verb, or "compound verb," to achieve the same goal: `@count`. By default, `@count` will count the number of rows, but if you specify a `wt` argument, it will use that to calculate the summary. As you can see from the log, `@count` is implemented as a wrapper around `@group_by`, `@summarize`, and `@ungroup`.
 """
 
-# ╔═╡ 98132f10-9d1e-46b9-8588-09cd4cc54d65
+# ╔═╡ 303bf629-89c6-47c9-854f-2b831331dcf4
 @chain patients begin
-	@select(city:state, starts_with("healthcare_"))
+	@count(county)
 end
 
-# ╔═╡ b564a807-44c8-4c22-9cb9-08087031ba35
+# ╔═╡ b6a74e95-cfd7-4576-923a-43120927b772
 md"""
-## Modifying columns during selection
-
-In `Tidier.jl`, you can also modify columns as you are selecting them. In R, this requires a separate verb `transmute`. We do provide a `@transmute` macro for convenience, but it is merely an alias for `@select`.
-
-The same expression we wrote before using `@select` and `@mutate` could actually be expressed using `@select` by itself.
+Specifying a `wt` (weight) argument, `@count` produces the same results as our longer bit of code above.
 """
 
-# ╔═╡ 58aee13e-34ff-4db9-8e44-5236a915c763
+# ╔═╡ 52e17d69-a1bf-44b3-af7a-793f0c7be79b
 @chain patients begin
-	@select(county = str_to_lower(county))
+	@count(county, wt = mean(healthcare_expenses) / 1_000)
+	@arrange(desc(n))
 end
 
-# ╔═╡ ba9d45c1-83be-48c8-99e4-279bcde9fadc
-md"""
-## Selecting and modifying multiple columns
-
-What if we wanted to apply a transformation to multiple columns while selecting them? We could rely on the `across()` function, which only works inside `Tidier.jl` macros.
-
-Two things to note:
-1. We prefixed the string within `starts_with` with an `r` to denote that this string is a regular expression.
-2. We had to add a `.` to `str_to_lower` to indicate the need to vectorize `str_to_lower` to work on the column (a vector). This is because `across()` does not perform auto-vectorization. Thus, the `across()` syntax can also be a helpful way to specific complex vectorization patterns.
-"""
-
-# ╔═╡ cdf79ae0-84f9-4f87-b93f-50ce2abff99a
-@chain patients begin
-	@select(across(starts_with(r"city|state"), x -> str_to_lower.(x)))
-end
-
-# ╔═╡ 1f87c691-ef81-4570-8830-a32e5d0e6944
-md"""
-## The world is your oyster
-
-`Tidier.jl` is very flexible and is perfectly happy to let you mix weird mixtures of column numbers and names. Why would you? No idea, but it's technically legal.
-"""
-
-# ╔═╡ e31e2e8b-3508-4a0e-9c26-0fbc836b6957
-@chain patients begin
-	@select(18:county)
-end
-
-# ╔═╡ 76ac9ab1-5ef1-471e-8743-f14542969128
-md"""
-# `@mutate` for creating new columns or modifying existing ones
-
-`@mutate` supports a similar style of coding as `@select`. However, unlike `@select`, `@mutate` leaves in all of the columns. For readability purposes only, we will follow `@mutate` expressions with `@select` expressions to narrow the columns, recognizing that in many cases, we could have achieved the same result with `@select` alone if limiting the column names was a requirement.
-
-Since Julia uses `*` for concatenating strings, we could concatenate the first and last names like this:
-
-## Creating a new column
-"""
-
-# ╔═╡ 2ecb9d1e-ef59-4702-8801-e32004359dad
-@chain patients begin
-	@mutate(name = first * " " * last)
-	@select(first, last, name)
-end
-
-# ╔═╡ 3d497ffa-0905-45f2-971d-641cbf428b11
-md"""
-!!! info "Auto-vectorization of operators"
-
-	`Tidier.jl`'s auto-vectorization also works on operators, so `first * " " * last` is actually converted to `first .* " " .* last` before it is run.
-
-!!! info "Should all functions be vectorized?"
-
-	It's also worth noting that there are times we do *not* want to vectorize functions. For example, what we wanted to calculate the mean value of `healthcare_expenses` and save this to a new column `mean_expenses`?
-
-	In this case, we would want the mean to be calculated for the overall vector (and not separately for each row). `Tidier.jl` knows not to vectorize `mean()`, so it correctly does *not* vectorize it.
-"""
-
-# ╔═╡ 0038380c-734d-4c9c-a2dd-53f6c9aa17fa
-@chain patients begin
-	@mutate(mean_expenses = mean(healthcare_expenses))
-	@select(healthcare_expenses, mean_expenses)
-end
-
-# ╔═╡ 3ca7554a-da90-4954-949d-cb681728c0dc
-md"""
-In this case, if you were to vectorize `mean()`, it would produce a row-wise mean, which is almost *never* the desired result. This is why it's generally a good idea to rely on auto-vectorization.
-"""
-
-# ╔═╡ 367945bf-9b87-4bec-90b7-7df09773b13b
-@chain patients begin
-	@mutate(mean_expenses = mean.(healthcare_expenses))
-	@select(healthcare_expenses, mean_expenses)
-end
-
-# ╔═╡ 0bd22a1a-e396-438b-8a00-73839ad36916
-md"""
-## Mutating an existing column
-
-You can also use `@mutate` to modify an existing column. Note that by default, `Tidier.jl` has immutable objects, which means that the resulting data frame is a copy and does not alter the original. In-place modifying macros like `@mutate!` are on the roadmap but have not yet been added to the package.
-
-Let's modify the `healthcare_coverage` column to be expressed as a percentage of total expenses.
-"""
-
-# ╔═╡ 2f4eb95d-9bfd-4561-97ec-7941dcee7087
-@chain patients begin
-	@mutate(healthcare_coverage = healthcare_coverage / healthcare_expenses)
-	@select(healthcare_coverage)
-end
-
-# ╔═╡ b01bf94b-91f9-42d8-a224-10c472e46760
-md"""
-## Multiple expressions within `@mutate`
-
-You can provide multiple expressions to `@mutate`. However, the subsequent expressions cannot depend on columns created in the prior ones.
-
-So this works:
-"""
-
-# ╔═╡ bb47f740-3df5-4bed-98cc-17c038872ca8
-@chain patients begin
-	@mutate(firstlast = first * " " * last,
-			lastfirst = last * ", " * first)
-	@select(firstlast, lastfirst)
-end
-
-# ╔═╡ 37d96678-52ae-4e68-9a13-e6ab36dda6a7
-md"""
-But this does not:
-
-!!! warn "Expected error"
-
-	Note: the error below is completely expected! Don't worry.
-"""
-
-# ╔═╡ a4cf47ef-778a-4b5b-ad22-136366cdcb1b
-@chain patients begin
-	@mutate(firstlast = first * " " * last,
-			firstlast_upper = str_to_upper(firstlast))
-	@select(firstlast, firstlast_upper)
-end
-
-# ╔═╡ 09d96c87-7b0d-4d0c-9b86-b2fb8621486f
-md"""
-!!! info "Why doesn't this work?"
-
-	This doesn't work **by design**. That is because multiple expressions provided in a single `@mutate` macro are actually run in parallel, thereby making them **faster**. While we could trivially make the expressions run sequentially, this would result in slower code.
-
-	If you really need to run `@mutate` macros sequentially, we recommend putting them in separate calls to `@mutate`.
-
-We can modify our code to make it work by splitting it into separate `@mutate` calls.
-"""
-
-# ╔═╡ 7b3dbcb6-259a-4314-b76b-25c2083923bf
-@chain patients begin
-	@mutate(firstlast = first * " " * last)
-	@mutate(firstlast_upper = str_to_upper(firstlast))
-	@select(firstlast, firstlast_upper)
-end
-
-# ╔═╡ bd9c49fe-b670-43a9-998c-278481894937
-md"""
-## Mutating multiple columns
-
-Similar to `@select`, you can mutate multiple columns using `across(columns, functions)` syntax.
-
-Let's say we wanted to modify healthcare expenses and coverage to be expressed in thousands of dollars.
-"""
-
-# ╔═╡ cad2963a-e6b7-4673-b7e8-4b5b66b647a5
-@chain patients begin
-	@mutate(across(starts_with("healthcare_"), x -> x ./ 1_000))
-	@select(starts_with("healthcare_"))
-end
-
-# ╔═╡ cec3e10d-b77e-4639-a567-b8262ecd7bc7
-md"""
-By default, column names are suffixed with `_function`. If you want to name the columns, you need to define the functions before calling them inside of `across()`.
-"""
-
-# ╔═╡ f3cee948-23ff-45a2-9bd5-42c713bda9d9
-function thousands(x) x ./ 1_000 end
-
-# ╔═╡ af4f2360-0dd6-44c0-878c-186de82e6dc2
-# This currently requires `!!` (bang-bang) interpolation due to a bug, but this will get fixed.
-
-@chain patients begin
-	@mutate(across(starts_with("healthcare_"), !!thousands))
-	@select(starts_with("healthcare_"))
-end
-
-# ╔═╡ 5f4299e2-a3a2-4c51-af92-6e79b537aa10
-md"""
-## Mutating multiple columns with multiple functions
-
-You can also mutate multiple columns with multiple functions.
-"""
-
-# ╔═╡ deeca6c7-9035-4aa5-95f4-f2fc267cd4ac
-# This currently requires `!!` (bang-bang) interpolation due to a bug, but this will get fixed.
-
-@chain patients begin
-	@mutate(across(starts_with("healthcare_"), (!!thousands, mean)))
-	@select(starts_with("healthcare_"))
-end
-
-# ╔═╡ 0c2c4caa-9f19-46fe-b575-8d349a066b11
-md"""
-# `@summarize` or `@summarise` for summarizing multiple rows into a single row
-
-If we want to modify data where the number of rows stays the same (and thus the source data are preserved), we generally want to use `@mutate`. However, if you want to aggregate data to produce a summary of multiple rows into a single row (e.g., using a summary statistic such as `mean`), then `@summarize` is the macro of choice. Note that while this guide will use `@summarize`, the alternate spelling `@summarise` is provided as an alias.
-
-## Creating a single summary statistic
-
-The syntax is similar to `@mutate`, except that the result is a single row (in ungrouped data). Later, when we cover grouping, you'll see that `@summarize` produces a single row per group.
-"""
-
-# ╔═╡ 7f852522-c33d-4245-99bc-17ffaccb436e
-@chain patients begin
-	@summarize(mean_expenses = mean(healthcare_expenses))
-end
-
-# ╔═╡ 0b4ee5c3-4b86-499a-99fa-93b6a3da588d
-md"""
-## Creating multiple summary statistics
-
-You can create multiple summary statistics in the same `@summarize` call, as long as subsequent expressions do not rely on columns created in earlier expressions.
-"""
-
-# ╔═╡ 6fa894c3-8970-4f0c-9d68-273b57a833bb
-@chain patients begin
-	@summarize(mean_expenses = mean(healthcare_expenses),
-			   median_expenses = median(healthcare_expenses))
-end
-
-# ╔═╡ 78137c08-5773-47a6-8deb-7bb0c5b152de
-md"""
-The same idea can also be expressed using the `across(columns, functions)` syntax, which supports all of the selection helper functions.
-"""
-
-# ╔═╡ 03af7bb4-bff5-4ecb-9331-419fc12075ff
-@chain patients begin
-	@summarize(across(healthcare_expenses,
-			   (mean, median)))
-end
-
-# ╔═╡ 80a3fd5a-79f7-4578-9d8e-5534b1d0f9ef
-md"""
-The `across(columns, functions)` syntax is easily extendable to multiple columns and multiple functions, making it especially flexible.
-"""
-
-# ╔═╡ b061fed5-7a88-4a21-beee-c3b5562f65bb
-@chain patients begin
-	@summarize(across((healthcare_expenses, healthcare_coverage),
-			   (mean, median)))
-end
-
-# ╔═╡ 626f5dda-9fc1-4f68-9e4f-3522436f25e0
-md"""
-# `@slice` for slicing rows based on row number
-
-The 3 macros we've covered so far, `@select`, `@mutate`, and `@summarize`, all work on columns. In contrast, `@slice` works on subsetting rows by row number.
-
-## Selecting the first 5 rows
-
-Here's how we can select the first 5 rows.
-"""
-
-# ╔═╡ 4accb7c8-33b9-4c8f-b8eb-4212f6e6c096
-@chain patients begin
-	@slice(1:5)
-end
-
-# ╔═╡ 061776b5-2b38-4939-a3f1-9ab5a4a1c5f0
-md"""
-## Slicing the last 5 rows
-
-In `Tidier.jl`, `n()` is a helper function that stands for the number of rows. We can use it inside of `@mutate` and `@summarize`, and we can also use it in `@slice` to refer to the number of rows.
-
-One way we can slice the last 5 rows is to use `@slice(n()-4:n())`. Note the order of operations in this expression: `n()-4` takes higher priority than `:`.
-"""
-
-# ╔═╡ 81df963e-04b0-4e70-a578-db1d171c2058
-@chain patients begin
-	@slice(n()-4:n())
-end
-
-# ╔═╡ b0c0a70f-75c5-4f0c-ae83-509b1a358eb0
-md"""
-Slicing supports Julia unit ranges, so if you want to slice every 10th row, you can use a Julia unit range from `1` to `n()` counting by every 10th value.
-"""
-
-# ╔═╡ fb742fd8-21c5-4144-9231-ca0675a01a9c
-@chain patients begin
-	@slice(1:10:n())
-end
-
-# ╔═╡ 107c2597-38ee-4210-bdd2-f3850ef63494
-md"""
-## Negated slicing
-
-Another way to select the last 5 rows is to use negated slicing. Negated slice indices will be excluded, so if you exclude all rows from `1` to `n()-5`, that will leave only the last 5 rows in the data frame.
-"""
-
-# ╔═╡ 85930246-d399-4ee6-9739-65f7f9de730e
-@chain patients begin
-	@slice(-(1:n()-5))
-end
-
-# ╔═╡ 93609f7b-b612-4f91-a33e-6906348731b0
-md"""
-Up until now, we've focused on just the 5 verbs and tried to stay away from other advanced variants. Now, we will introduce you to some of the `@slice` variants, which make these different kinds of slicing operations easier:
-
-* `@slice_head`
-* `@slice_tail`
-* `@slice_sample`
-* `@slice_max`
-* `@slice_min`
-"""
-
-# ╔═╡ 7c7b18c1-1ed7-47ae-b6eb-eea97f88f762
-md"""
-## `@slice_head` to slice the first 5 rows
-
-`@slice_head` provides a convenient shortcut for slicing the first 5 rows. Note that you have to provide either `n` (number) or `prop` (proportion) as keyword arguments.
-
-Specifying `n` slices the first `n` rows.
-"""
-
-# ╔═╡ f0df7895-765c-47a8-a669-bbcd1037b7c8
-@chain patients begin
-	@slice_head(n = 5)
-end
-
-# ╔═╡ 38729089-e7e0-47b9-afc4-fdd44ee67acc
-md"""
-## `@slice_head` to slice the first 1% of rows
-
-Specifying `prop` slices the first `prop` proportion of rows from the data frame.
-"""
-
-# ╔═╡ 08615284-1a15-4e7f-a8c0-4f3795657374
-@chain patients begin
-	@slice_head(prop = 0.01)
-end
-
-# ╔═╡ cb21f6c0-d603-43ed-8053-ab531b3f2355
-md"""
-## `@slice_tail` to slice the last 5 rows
-
-`@slice_tail` works similarly and provides a convenient shortcut for slicing the last 5 rows. Note that you have to provide either `n` (number) or `prop` (proportion) as keyword arguments.
-"""
-
-# ╔═╡ 2d67086f-c980-4fd6-8fcf-3684685c4d1d
-@chain patients begin
-	@slice_tail(n = 5)
-end
-
-# ╔═╡ 36e15860-e571-4075-913b-1950208557cf
-md"""
-## `@slice_sample` to slice 5 random rows
-
-`@slice_sample` provides a convenient way to sample 5 random rows. Similar to `@slice_head` and `@slice_tail`, you have to provide either `n` (number) or `prop` (proportion) as keyword arguments.
-"""
-
-# ╔═╡ a0ae43af-c925-4558-a666-a8cabd7f6eb2
-@chain patients begin
-	@slice_sample(n = 5)
-end
-
-# ╔═╡ e8dbc800-b80a-46f2-9e84-576aeb30b471
-md"""
-## `@slice_sample` to slice a random 1% sample of rows
-
-This can be helpful for model-building where you want to set aside a random test set consisting of a fixed percentage of your data frame.
-"""
-
-# ╔═╡ fe5e882d-4986-4984-8aea-49aafdab51c0
-@chain patients begin
-	@slice_sample(prop = 0.01)
-end
-
-# ╔═╡ 5290690c-823b-4f9d-a917-d4a69c5486ac
-md"""
-## `@slice_max` to slice the 5 highest values of a variable
-
-`@slice_max` provides a convenient way to slice a fixed number of rows based on the maximum `n` or `prop` values of a variable. Note that `with_ties` is set to true by default, so you may get more rows than your `n` or `prop` if there are ties.
-"""
-
-# ╔═╡ 8c659b07-1ee5-4950-ad26-837461aa2b75
-@chain patients begin
-	@slice_max(healthcare_expenses, n = 5)
-	@select(healthcare_expenses)
-end
-
-# ╔═╡ b5090de8-9eb3-4a9d-adf9-28ddd1a8f1cb
-md"""
-## `@slice_min` to slice the 5 lowest values of a variable
-
-`@slice_min` provides a convenient way to slice a fixed number of rows based on the minimum `n` or `prop` values of a variable. Note that `with_ties` is set to true by default, so you may get more rows than your `n` or `prop` if there are ties.
-"""
-
-# ╔═╡ 6f1c7d33-4471-4f28-811e-576574cf9be2
-@chain patients begin
-	@slice_min(healthcare_expenses, n = 5)
-	@select(healthcare_expenses)
-end
-
-# ╔═╡ 63ff079c-2f44-4b38-8000-3e4897fc737c
-md"""
-# `@filter` for filtering in rows based on criteria
-
-The last "basic" verb we will learn in this lesson is `@filter`, which allows rows to be subset based on criteria.
-
-### A simple example
-
-Let's say we wanted to limit our dataset to rows where a person is still alive (their death date is missing), they go by a "Ms." or "Mrs." prefix, and they have a birthday in July.
-
-Here's how we would achieve that:
-"""
-
-# ╔═╡ b69f0827-b0f2-4081-83a4-32a7ae2c2cdd
-@chain patients begin
-	@filter(ismissing(deathdate) && 
-			prefix in ("Ms.", "Mrs") && 
-			month(birthdate) == 7)
-end
-
-# ╔═╡ 98e58900-c491-4513-ada9-a190f7a5bb63
-md"""
-!!! info "Let's break down some details"
-
-	There a couple of Tidier-specific things to notice here. First, TidierData's auto-vectorization means that `ismissing()` is being converted to `ismissing.()`, and `&&` is being converted to `.&&` so that these operations are vectorized. In general, `&&` is preferred for `@filter` over `&` because `&&` is a shortcut operator -- the second condition is only evaluated if if the first is `true`.
-
-	Second, `prefix in ("Ms.", "Mrs")` is being converted behind the scenes into `in.(prefix, Ref(Set("Ms.", "Mrs.")))` before being run in Julia. This allows you to write a very compact syntax or `in`, and the rationale for this specific conversion is that it is more performant approach for large datasets.
-
-	Third, you'll notice we didn't need to type in `using Dates` to access the `month()` function. That is because TidierDates provides a number of helper functions to handle dates, and TidierDates also re-exports the Dates package. This is part of the batteries-included Tidier philosophy.
-"""
-
-# ╔═╡ c45729e7-6ab5-4d63-ba17-cf7737710c58
-md"""
-## Filtering using multiple arguments
-
-The expression above could also be written using multiple arguments. When multiple arguments are provided, they are equivalent to an `&&` operation.
-"""
-
-# ╔═╡ 14dc9df6-678e-44c9-9b02-aa38cfe3cd27
-@chain patients begin
-	@filter(ismissing(deathdate),
-			prefix in ("Ms.", "Mrs"),
-			month(birthdate) == 7)
-end
-
-# ╔═╡ 0ba6d4ce-69af-4d13-b035-e20994b20518
-md"""
-## Using `@filter` to slice
-
-Just like all macros have access to the `n()` helper function to access the number of rows, all macros also have access to the `row_number()` helpful function, which returns the row number for each row. For ungrouped data, this is simply the row number over the entire data frame. For grouped data, this is assigned separately for each group (similar to `n()`).
-"""
-
-# ╔═╡ 2fd790d0-3290-4211-b087-781c3bd87f04
-@chain patients begin
-	@filter(row_number() in 1:5)
-end
-
-# ╔═╡ f25e2311-cc19-46ad-b1fe-8ad85fa5321d
+# ╔═╡ 1d300104-3cb4-4969-8355-3865a8b30041
 md"""
 # Summary
 
-In this section, we learned about the 5 common single-data frame verbs that help accomplish 80% of exploratory data analysis work.
+In this section, we learned how to set groups and do each of these operations separately for each group, using `@group_by` and `@ungroup`.
 
-* `@select`: for selecting columns
-* `@mutate`: for creating new columns or modifying existing ones
-* `@summarize` or `@summarise`: for summarizing multiple rows into a single row
-* `@slice`: for slicing rows based on row number
-* `@filter`: for filtering *in* rows based on criteria
+We also learned about a number of other compound verbs or shortcuts, including
+
+* `@count`
+* `@arrange`
 
 And we learned how to chain these operations together using `@chain`.
-
-We also learned about variants of `@slice`, including:
-
-* `@slice_head`, `@slice_tail`, `@slice_sample`, `@slice_max`, and `@slice_min`
-
-In the next section, we will learn how to perform each of these operations separately for each group, using `@group_by` and `@ungroup`.
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -2972,9 +2465,9 @@ version = "1.6.1"
 
 [[deps.TidierCats]]
 deps = ["CategoricalArrays", "DataFrames", "Reexport", "Statistics"]
-git-tree-sha1 = "7841f49f36ee19dc0ac25615572c55da71f89bb7"
+git-tree-sha1 = "266bb30c1abd36a139b824d76375a316d63e269d"
 uuid = "79ddc9fe-4dbf-4a56-a832-df41fb326d23"
-version = "0.2.1"
+version = "0.2.2"
 
 [[deps.TidierDB]]
 deps = ["Arrow", "CSV", "Chain", "Crayons", "DataFrames", "Dates", "DuckDB", "DuckDB_jll", "GZip", "HTTP", "JSON3", "MacroTools", "Reexport"]
@@ -3013,10 +2506,10 @@ uuid = "20186a3f-b5d3-468e-823e-77aae96fe2d8"
 version = "0.4.1"
 
 [[deps.TidierFiles]]
-deps = ["Arrow", "CSV", "DataFrames", "Dates", "HTTP", "JSON3", "Parquet2", "RData", "Random", "ReadStatTables", "Reexport", "Sockets", "XLSX"]
-git-tree-sha1 = "64ba58fe0f18c3ae17f03f8a574eec3b9d7aefb8"
+deps = ["Arrow", "CSV", "DataFrames", "Dates", "HTTP", "JSON", "JSON3", "Parquet2", "RData", "Random", "ReadStatTables", "Reexport", "Sockets", "XLSX"]
+git-tree-sha1 = "da8dd6548e702c2106c86c73350de425d57c43a1"
 uuid = "8ae5e7a9-bdd3-4c93-9cc3-9df4d5d947db"
-version = "0.3.0"
+version = "0.3.1"
 
 [[deps.TidierIteration]]
 deps = ["Chain", "DataFrames", "JSON3"]
@@ -3355,107 +2848,35 @@ version = "3.6.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─b62ef720-1119-11f0-188c-c339c6461038
-# ╟─6166d982-4826-43f0-b08b-3898bc7b1909
-# ╟─32e83bd6-e5a3-4f86-9b97-acbfe683b0e2
-# ╟─c6ff7302-4168-4725-8985-8d14a267f556
-# ╠═9542ec18-7db2-45e2-8ee2-7b761225e106
-# ╟─9aa83c02-034b-45ce-bbc6-793f970ec7a9
-# ╟─195c748a-7487-477e-b937-c4250a7791aa
-# ╠═86c1fb86-a866-4205-8cee-a267d81410d9
-# ╟─93f456b0-7632-4f9b-a74a-a668676c79dd
-# ╠═f02bcd5f-c6e1-4afa-acf6-09f6d6470515
-# ╟─fbb1ba79-0c17-4d5b-8c8a-ecf1c9e426dc
-# ╠═7276c00f-994a-4cb7-a458-135525ec1c75
-# ╟─e3ea31fe-3fa2-475a-a307-1a4161320e50
-# ╠═50e73b83-1cd2-484a-9089-b4883db5a673
-# ╟─7fed6f55-0195-4725-945b-c563fe78502e
-# ╟─522804b5-9cfc-40b1-a8db-700b8f6dba90
-# ╠═41e905e7-41b1-4d6b-ad74-7e09186cd86a
-# ╟─f980e41e-1b0a-48ee-8a76-5411f3cab9f8
-# ╠═659ceb7a-e4ef-487b-937c-a2cb5047b6b8
-# ╟─60a74100-597d-4f18-a673-1773921e5698
-# ╠═75b0d884-138c-470a-9b83-0b06192b0f2d
-# ╟─00eb7c61-396e-418e-8f65-ef3e0edda775
-# ╠═e7a7a573-82fe-463d-a497-ea432a46a660
-# ╟─20bfb084-fc99-4e10-8f42-ac67bfc6205b
-# ╠═a6d8a0fa-dc6f-4c41-9434-3255e2d8135e
-# ╟─bf4aae5b-dd1c-4d32-aa05-1d38222844b4
-# ╠═7b6213c0-1e15-4bff-bfef-f70f83541d3f
-# ╟─d1eb7693-0f9c-4752-a864-b43cf57ed445
-# ╠═519a98b5-00e5-443a-bd30-0e73aa2cf2c4
-# ╟─ca5bacc1-d50c-439a-8241-16783c7d909a
-# ╠═a34ddb7d-3d43-462d-8af8-03fe081a004a
-# ╠═7d4f56fa-9b95-4d18-a29d-2d5885516b8b
-# ╟─109d0ea3-49d2-4a43-925c-84887eb4675c
-# ╠═dbcd03ce-54f6-446a-ad21-86527ae7150b
-# ╟─99d477ab-af3b-4b67-a54c-889434780644
-# ╠═98132f10-9d1e-46b9-8588-09cd4cc54d65
-# ╟─b564a807-44c8-4c22-9cb9-08087031ba35
-# ╠═58aee13e-34ff-4db9-8e44-5236a915c763
-# ╟─ba9d45c1-83be-48c8-99e4-279bcde9fadc
-# ╠═cdf79ae0-84f9-4f87-b93f-50ce2abff99a
-# ╟─1f87c691-ef81-4570-8830-a32e5d0e6944
-# ╠═e31e2e8b-3508-4a0e-9c26-0fbc836b6957
-# ╟─76ac9ab1-5ef1-471e-8743-f14542969128
-# ╠═2ecb9d1e-ef59-4702-8801-e32004359dad
-# ╟─3d497ffa-0905-45f2-971d-641cbf428b11
-# ╠═0038380c-734d-4c9c-a2dd-53f6c9aa17fa
-# ╟─3ca7554a-da90-4954-949d-cb681728c0dc
-# ╠═367945bf-9b87-4bec-90b7-7df09773b13b
-# ╟─0bd22a1a-e396-438b-8a00-73839ad36916
-# ╠═2f4eb95d-9bfd-4561-97ec-7941dcee7087
-# ╟─b01bf94b-91f9-42d8-a224-10c472e46760
-# ╠═bb47f740-3df5-4bed-98cc-17c038872ca8
-# ╟─37d96678-52ae-4e68-9a13-e6ab36dda6a7
-# ╠═a4cf47ef-778a-4b5b-ad22-136366cdcb1b
-# ╟─09d96c87-7b0d-4d0c-9b86-b2fb8621486f
-# ╠═7b3dbcb6-259a-4314-b76b-25c2083923bf
-# ╟─bd9c49fe-b670-43a9-998c-278481894937
-# ╠═cad2963a-e6b7-4673-b7e8-4b5b66b647a5
-# ╟─cec3e10d-b77e-4639-a567-b8262ecd7bc7
-# ╠═f3cee948-23ff-45a2-9bd5-42c713bda9d9
-# ╠═af4f2360-0dd6-44c0-878c-186de82e6dc2
-# ╟─5f4299e2-a3a2-4c51-af92-6e79b537aa10
-# ╠═deeca6c7-9035-4aa5-95f4-f2fc267cd4ac
-# ╟─0c2c4caa-9f19-46fe-b575-8d349a066b11
-# ╠═7f852522-c33d-4245-99bc-17ffaccb436e
-# ╟─0b4ee5c3-4b86-499a-99fa-93b6a3da588d
-# ╠═6fa894c3-8970-4f0c-9d68-273b57a833bb
-# ╟─78137c08-5773-47a6-8deb-7bb0c5b152de
-# ╠═03af7bb4-bff5-4ecb-9331-419fc12075ff
-# ╟─80a3fd5a-79f7-4578-9d8e-5534b1d0f9ef
-# ╠═b061fed5-7a88-4a21-beee-c3b5562f65bb
-# ╟─626f5dda-9fc1-4f68-9e4f-3522436f25e0
-# ╠═4accb7c8-33b9-4c8f-b8eb-4212f6e6c096
-# ╟─061776b5-2b38-4939-a3f1-9ab5a4a1c5f0
-# ╠═81df963e-04b0-4e70-a578-db1d171c2058
-# ╟─b0c0a70f-75c5-4f0c-ae83-509b1a358eb0
-# ╠═fb742fd8-21c5-4144-9231-ca0675a01a9c
-# ╟─107c2597-38ee-4210-bdd2-f3850ef63494
-# ╠═85930246-d399-4ee6-9739-65f7f9de730e
-# ╟─93609f7b-b612-4f91-a33e-6906348731b0
-# ╟─7c7b18c1-1ed7-47ae-b6eb-eea97f88f762
-# ╠═f0df7895-765c-47a8-a669-bbcd1037b7c8
-# ╟─38729089-e7e0-47b9-afc4-fdd44ee67acc
-# ╠═08615284-1a15-4e7f-a8c0-4f3795657374
-# ╟─cb21f6c0-d603-43ed-8053-ab531b3f2355
-# ╠═2d67086f-c980-4fd6-8fcf-3684685c4d1d
-# ╟─36e15860-e571-4075-913b-1950208557cf
-# ╠═a0ae43af-c925-4558-a666-a8cabd7f6eb2
-# ╟─e8dbc800-b80a-46f2-9e84-576aeb30b471
-# ╠═fe5e882d-4986-4984-8aea-49aafdab51c0
-# ╟─5290690c-823b-4f9d-a917-d4a69c5486ac
-# ╠═8c659b07-1ee5-4950-ad26-837461aa2b75
-# ╟─b5090de8-9eb3-4a9d-adf9-28ddd1a8f1cb
-# ╠═6f1c7d33-4471-4f28-811e-576574cf9be2
-# ╟─63ff079c-2f44-4b38-8000-3e4897fc737c
-# ╠═b69f0827-b0f2-4081-83a4-32a7ae2c2cdd
-# ╟─98e58900-c491-4513-ada9-a190f7a5bb63
-# ╟─c45729e7-6ab5-4d63-ba17-cf7737710c58
-# ╠═14dc9df6-678e-44c9-9b02-aa38cfe3cd27
-# ╟─0ba6d4ce-69af-4d13-b035-e20994b20518
-# ╠═2fd790d0-3290-4211-b087-781c3bd87f04
-# ╟─f25e2311-cc19-46ad-b1fe-8ad85fa5321d
+# ╟─4f031ad6-18ba-11f0-3446-b5b9b8418e01
+# ╟─c585065d-cd35-4477-ba87-e773a3679be0
+# ╟─c35e7828-c429-44fc-ab89-10c153f7e23c
+# ╟─57f3ea99-a205-4cf4-8785-72c26fa35e62
+# ╠═d3f0ab14-e870-41c6-8c51-2f036d74307f
+# ╟─f5ddc893-298a-4061-a917-3253c2501b68
+# ╟─c70e1da9-7660-47c9-a402-dd0dcd6e238e
+# ╠═5ebae093-4e31-4630-ad73-1f31e4a3f004
+# ╟─7dd7bcd8-8aca-4ffb-a0a1-5a33feb037ea
+# ╟─b22377c2-ff5f-45ed-86c1-05d45044b05f
+# ╠═76b1a4fc-2aa6-4fe4-b77b-64ad59380455
+# ╟─77694086-11a1-4e39-9f5a-2727ae47835a
+# ╠═44c82662-8594-47c4-905d-5a1392faa6e1
+# ╟─61c38292-e1c5-48bd-bc69-8a984cfb376b
+# ╠═87f29fce-bee6-4059-a2de-936fe0daffc5
+# ╟─7e8a9b15-3f87-41c6-a33b-6db2022b8d86
+# ╠═8adc0f46-a160-429d-b68b-eae54d3b80cf
+# ╟─83e46102-e3e4-4902-9641-1857e6d2e037
+# ╠═ace63f4d-597a-4035-beec-5fccb17d78cf
+# ╟─59d841a0-7006-43af-9aaf-4a65a879efbc
+# ╠═7e7e09a6-0f71-410e-a57e-f60fa57d0dee
+# ╟─68f8d011-863f-4388-b058-989ea3f97e74
+# ╠═265b461b-78d0-460f-ba9f-9d6959faea35
+# ╟─a7ca9c08-1a0e-4b50-b5d4-3f6f4c6f26c5
+# ╠═ab5afb2d-c58a-4794-b992-f4255c5c8455
+# ╟─f5a047fe-96dc-47b0-8e0e-bb9b7ac6f9ae
+# ╠═303bf629-89c6-47c9-854f-2b831331dcf4
+# ╟─b6a74e95-cfd7-4576-923a-43120927b772
+# ╠═52e17d69-a1bf-44b3-af7a-793f0c7be79b
+# ╟─1d300104-3cb4-4969-8355-3865a8b30041
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

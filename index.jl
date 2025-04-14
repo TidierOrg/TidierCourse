@@ -48,7 +48,7 @@ md"""
 
 - [Reading tabular data from files](reading-files.html)
 - [The verbs of data science](verbs-of-data-science.html)
-- Grouping and combining verbs
+- [Grouping and combining verbs](grouping-and-combining-verbs.html)
 - Data structures and types in Julia
 
 """
@@ -57,7 +57,7 @@ md"""
 md"""
 ## Tidy Data
 
-- Recoding data
+- [Recoding data](recoding-data.html)
 - Joining data frames
 - Reshaping data
 - Separating and uniting columns of data
@@ -70,6 +70,12 @@ md"""
 - Working with strings
 - Working with categorical data
 - Working with dates
+"""
+
+# ╔═╡ 373f8db4-ee8c-45c3-aa04-afcdea4a4320
+md"""
+## Working with Databases
+* From dataframes to databases
 """
 
 # ╔═╡ 8c580a03-fc34-4e90-a558-de5f68f4850a
@@ -399,6 +405,7 @@ version = "17.4.0+2"
 # ╟─cb352ad1-468b-4c27-be50-78fbc56b418c
 # ╟─ce3edead-4cfa-4b53-bef6-a7acc2202ed1
 # ╟─b6b55c15-ac7d-497c-94e7-3040b0e3eb40
+# ╟─373f8db4-ee8c-45c3-aa04-afcdea4a4320
 # ╟─8c580a03-fc34-4e90-a558-de5f68f4850a
 # ╟─c81acba5-44fa-4c2c-9784-bbfa5c269905
 # ╟─a7a88a9b-ad26-4f62-9e3b-4e77094a10a3

@@ -40,13 +40,6 @@ begin
 	HypertextLiteral.@htl("""$(HypertextLiteral.Bypass(html_string))""")
 end
 
-# ╔═╡ 4e85c59d-bfbd-44c2-83fa-a253449d9bd7
-md"""
-# Loading `Tidier.jl`
-
-We will start off by loading the Tidier meta-package.
-"""
-
 # ╔═╡ 3c42954e-ef62-4dd8-9bea-c98025dc3550
 md"""
 # Reading tabular data from files
@@ -55,9 +48,10 @@ On this page, we will explore the different formats, in which we can read and wr
 
 - CSV files: `read_csv` and `write_csv`
 - Tab-separated files: `read_tsv` and `write_tsv`
+- JSON files: `read_json` and `write_json`
 - Fixed-width files: `read_fwf`
 - Excel files: `read_xlsx` and `write_xlsx`
-- Google sheets: `read_gsheet`
+- Google sheets: `read_gsheet` and `write_gsheet`
 - Arrow files: `read_arrow` and `write_arrow`
 - Parquet files: `read_parquet` and `write_parquet`
 - R files (RData and RDS): `read_rdata`
@@ -82,6 +76,13 @@ All of the Tidier file-reading functions operate on both local data and data fil
 
 The one downside of the `read_*` functions in this package is that they load the entire dataset into memory (in the form of a DataFrame object). When this is not an option, an alternative approach is to load the data into a database or to stream the data using DuckDB, which is supported functionality within TidierDB.
 
+"""
+
+# ╔═╡ 4e85c59d-bfbd-44c2-83fa-a253449d9bd7
+md"""
+# Loading `Tidier.jl`
+
+We will start off by loading the Tidier meta-package.
 """
 
 # ╔═╡ 80e33f2f-aaa7-4c0a-86e6-6ae546aea3ef
@@ -215,9 +216,9 @@ DataFrame(
 
 # ╔═╡ 6fe58ade-a353-465e-9d4e-867476db7527
 md"""
-# What if the `read_file` function is slow or doesn't work?
+# Reading files using DuckDB
 
-On rare occasions, native file Julia I/O functions (which are wrapped by TidierFiles) may be slow or may not read data in correctly. In case you run into any issues with reading files with TidierFiles, an alternative option supported by TidierDB is to read files in using DuckDB's file I/O utilities.
+On rare occasions, native file Julia I/O functions (which are wrapped by TidierFiles) may be slow or may not be able to read in certain data files. In case you run into any issues with reading files with TidierFiles, an alternative option supported by TidierDB is to read files in using DuckDB's file I/O utilities.
 
 The syntax for reading files with TidierDB is slightly different. Rather than using `read_file`, you will use `db_table(connect(duckdb()), "file_path_here")`.
 
@@ -237,7 +238,7 @@ The DuckDB approach has two advantages over reading in files using `read_file`:
 
 # ╔═╡ 1ba23656-5fa6-4c10-995f-074a3ab05250
 patients_duckdb = @chain begin
-	db_table(connect(duckdb()), "data/patients_parquet.parquet") 
+	db_table(connect(duckdb()), "data/patients.csv") 
 	@collect()
 end
 
@@ -271,7 +272,7 @@ md"""
 
 # ╔═╡ cdcee377-8e6e-442c-b607-83087c8069eb
 @chain begin
-	db_table(connect(duckdb()), "data/patients_parquet.parquet") 
+	db_table(connect(duckdb()), "data/patients.csv") 
 	write_file("data/patients_duckdb.parquet")
 end
 
@@ -2899,9 +2900,9 @@ version = "3.6.0+0"
 # ╔═╡ Cell order:
 # ╟─ebfa8d00-0f94-11f0-2498-2b147fcb470f
 # ╟─1be28f4a-f8b3-464a-af8e-0a37210ba529
+# ╟─3c42954e-ef62-4dd8-9bea-c98025dc3550
 # ╟─4e85c59d-bfbd-44c2-83fa-a253449d9bd7
 # ╠═f49f4678-9bb0-4669-8143-3d4ece5b8225
-# ╟─3c42954e-ef62-4dd8-9bea-c98025dc3550
 # ╟─80e33f2f-aaa7-4c0a-86e6-6ae546aea3ef
 # ╟─ceb1cf63-b845-4632-8181-8cacc2ca809e
 # ╟─7a51b42e-2d6c-4455-a53a-f48c0887a128

@@ -4,13 +4,13 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 6166d982-4826-43f0-b08b-3898bc7b1909
+# ╔═╡ 52fdd6f8-b472-4224-8b8c-1276f0cdb0b7
  	using HypertextLiteral, PlutoUI; TableOfContents()
 
-# ╔═╡ 9542ec18-7db2-45e2-8ee2-7b761225e106
+# ╔═╡ dee44068-3258-401b-aaf9-a22379817f59
 using Tidier
 
-# ╔═╡ 195c748a-7487-477e-b937-c4250a7791aa
+# ╔═╡ d886ef58-5314-4a82-a0b0-f076ba670387
 begin
 	# If the subfolder "data" does not exist, create it
 	if !("data" in readdir())
@@ -34,25 +34,35 @@ begin
 	end
 end
 
-# ╔═╡ b62ef720-1119-11f0-188c-c339c6461038
+# ╔═╡ 4042d526-18bd-11f0-2d79-8b6ff113de76
 begin
 	html_string = join(readlines("header.html"), "\n")
 	HypertextLiteral.@htl("""$(HypertextLiteral.Bypass(html_string))""")
 end
 
-# ╔═╡ 32e83bd6-e5a3-4f86-9b97-acbfe683b0e2
+# ╔═╡ a60ab41c-717e-4f6b-9cca-0a4b37fd1020
 md"""
-# Verbs of data science
+# Recoding data
+
+Recoding data refers to the act of converting data from its raw form into one that is analytically relevant and useful. Most commonly, this involves converting a continuous variable into a set of categories based on a set of criteria.
+ 
+For example, it's common that age is represented in datasets as a continuous variable. However, if we want to know how many medications are taken by adults versus by children, we need to first break age into categories. In this case, we may simply need to apply a threshold for age above which we consider someone an adult, and otherwise they are a child. However, sometimes there are multiple criteria that need to be considered across multiple columns in recoding data.
+
+Recoding can also involve lumping together many into a fewer number of categories. Fundamentally, this lesson use of logic to create categories irrespective of the form of the source data.
+
+We will learn about `if_else` and `case_when`, which when used within `@mutate` provide a very flexible and extendable approach to recoding data. We will also begin to introduce some of the convenience functions for handling categorical data (from TidierCats), although this will discussed in more depth in the section on [Working with categorical data](working-with-categorical-data.html).
+
+Before we start, let's load the `Tidier` package and the dataset.
 """
 
-# ╔═╡ c6ff7302-4168-4725-8985-8d14a267f556
+# ╔═╡ fa1ab250-9c22-4049-ac56-ce72b235a269
 md"""
 # Loading `Tidier.jl`
 
 We will start off by loading the Tidier meta-package.
 """
 
-# ╔═╡ 9aa83c02-034b-45ce-bbc6-793f970ec7a9
+# ╔═╡ b9770ec7-1345-4ccb-abfe-79c99959f8d7
 md"""
 # Prelude: downloading the MITRE Synthea Dataset
 
@@ -63,681 +73,365 @@ md"""
 After downloading the dataset, we will read in the `data/patients.csv` file into a data frame.
 """
 
-# ╔═╡ 86c1fb86-a866-4205-8cee-a267d81410d9
+# ╔═╡ 3dd56607-ab8c-477d-8714-1051e5a87eb2
 patients = @chain read_file("data/patients.csv") @clean_names
 
-# ╔═╡ 93f456b0-7632-4f9b-a74a-a668676c79dd
+# ╔═╡ b6c3d41f-b7b4-47a5-9ae6-b6fde37a9225
 md"""
-# The verbs of data science
+# Case study: Calculating age categories
 
-There are 5 verbs which enable you to do 80% of all analyses that can be done using a single data frame. We refer to them as verbs because they change some aspect of our dataset, and once we familiarize ourselves with their purpose, we can start using them in sentences... as verbs.
+While our motivating example at the beginning focused on converting raw age into age categories, real world data remind us that life isn't quite this simple. Real-world health datasets rarely record age as a column. While age on a given date may be provided as a calculated, the raw data typically encode date of birth and death, and they leave it as an exercise to the analyst to calculate the age.
 
-These 5 verbs are:
+While this seems inconvenient, this is actually preferred because we rarely care about the age as of today's date. Instead, we usually want to know the age in relation to a specific event (e.g., on the day of surgery).
 
-* `@select`: for selecting columns
-* `@mutate`: for creating new columns or modifying existing ones
-* `@summarize` or `@summarise`: for summarizing multiple rows into a single row
-* `@slice`: for slicing rows based on row number
-* `@filter`: for filtering *in* rows based on criteria
-
-There is another important adverb that we will learn in the next section on [Grouping and combining verbs](grouping-and-combining-verbs.html), `@group_by`, which modifies the behavaior of these 5 verbs. Taken together, the combination of `@group_by` and the above 5 verbs will allow you to express complex analytical ideas in a concise way.
-
-Each of these verbs take a data frame as the first argument. For example, selecting the county column can be done as follows.
+So, before we can recode the age into a categories, we first need to calculate age in years.
 """
 
-# ╔═╡ f02bcd5f-c6e1-4afa-acf6-09f6d6470515
-@select(patients, county)
-
-# ╔═╡ fbb1ba79-0c17-4d5b-8c8a-ecf1c9e426dc
+# ╔═╡ dbbdf3ea-7df9-4990-9ddf-4eb4dcde671a
 md"""
-## Chaining verbs
+## First, let's calculate age
 
-Because each of these verbs takes a data frame as the first argument, these verbs are readily structured into a pipeline (or chain) using the `@chain` macro. When using the `@chain` macro, each expression's result is inserted into the first argument of the following one.
-
-So if we wanted to lowercase the string after selecting the `county`, we would naturally express this as a pipeline starting with `@select` followed by `@mutate`.
+For the sake of this analysis, let's assume that we want to know everyone's age as of the most recent date when this dataset was updated. For simplicity, let's assume that this corresponds to the most recent date recorded in *either* the `birthdate` or `deathdate` columns.
 """
 
-# ╔═╡ 7276c00f-994a-4cb7-a458-135525ec1c75
-@chain patients begin
-	@select(county)
-	@mutate(county = str_to_lower(county))
+# ╔═╡ 260366bf-35fe-4fb4-81ef-4c0a6eda1e5f
+most_recent_birth_date = @chain patients begin
+	@slice_max(birthdate, with_ties = false)
+	@pull(birthdate) # 1
 end
 
-# ╔═╡ e3ea31fe-3fa2-475a-a307-1a4161320e50
-md"""
-This chain is easily expressed as a sentence:
+# 1: `@pull` pulls a column from a data frame and returns a vector
 
-* Start with the `patients` data frame
-* Select the `county` column
-* Mutate the `county` column to be lower case string values.
-
-You may see examples of other code online where people choose to express this without a `@chain` like this: `@mutate(@select(patients, county), county = str_to_lower(county))`.
-
-While this produces the same result, it is much less readable since you have to read it from the inside out, rather than from left-to-right.
-
-## Tidy expressions
-
-Experienced Julia users may scratch their heads when seeing the expression `@mutate(county = str_to_lower(county))` for several reasons. First, they wonder why `county`, which refers to a column in the dataset, is written as `county` rather than as `:county`, which is a favored design choice of other macro-based data analysis packages. The use of `county` as a bare variable name is referred to within the Tidier ecosytem as a **tidy expression**.
-
-The reason why `Tidier.jl` uses tidy expressions is that they are concise and also allow for multiple columns to be referred to via a unit-range-like style.
-"""
-
-# ╔═╡ 50e73b83-1cd2-484a-9089-b4883db5a673
-@chain patients begin
-	# select columns from `first` to `last` and `city` to `county`
-	@select(first:last, city:county)
+# ╔═╡ ef44271c-3df6-43a1-9f1f-8eb49d6b1ca1
+most_recent_death_date = @chain patients begin
+	@slice_max(deathdate, with_ties = false)
+	@pull(deathdate)
 end
 
-# ╔═╡ 7fed6f55-0195-4725-945b-c563fe78502e
-md"""
-This naturally leads to questions about how scoping works within `Tidier.jl` and how to refer to variables outside of data frames. One helpful way to think about scope within `Tidier.jl` is that by default, bare variables (like `county`) operate in "data frame scope," where we assume by default that they refer to columns within a data frame.
+# ╔═╡ 46cb6a28-88f9-4cfc-935f-324c2dc46622
+todays_date = maximum([most_recent_birth_date, most_recent_death_date])
 
-To refer to variables outside of the data frame, we have to use interpolation.
+# ╔═╡ 541603d5-71dd-41c9-ac85-0da45ec922d3
+md"""
+The most recent `birthdate` recorded in the dataset is $most_recent_birth_date. The most recent `deathdate` recorded in the dataset is $most_recent_death_date.
+
+Overall, the `deathdate` is the most recent, so we will assume that the age we are calculating is the latest age as of $todays_date, which we will consider as "today's date." Remember that in real life, we will usually want the age of an index event which may differ for each patient, and not necessarily a universal date for all patients.
+
+## Let's look at the missingness patterns for the `birthdate` and `deathdate` columns.
+
+If we want to calculate age, we want to make sure we have all the data we need, and that there is no missing data.
 """
 
-# ╔═╡ 522804b5-9cfc-40b1-a8db-700b8f6dba90
+# ╔═╡ db1f643d-18cf-455c-ba91-8f741b382198
+@chain patients begin
+	@group_by(birth_date_missing = ismissing(birthdate),
+		   death_date_missing = ismissing(deathdate))
+	@summarize(n = n())
+	@ungroup()
+end
+
+# ╔═╡ fee90e72-788e-481d-bbbf-71ce3005b34d
 md"""
-## Interpolation to refer to variables outside of the data frame
+It looks like all patients have a birth date recorded. On the other hand, 1,000 patients have a missing date of death, with only 163 having a recorded death date.
 
-`Tidier.jl` supports two forms of interpolation: `!!` (or "bang-bang") interpolation and `@eval`-based interpolation. While you can read more about bang-bang interpolation in the TidierData.jl documentation, we currently recommend `@eval`-based interpolation because it is uniformly supported across macros in the `Tidier.jl` ecosystem. The reliance on `@eval` comes with a slight performance penalty, which is why we are continuing to work on improving support for bang-bang interpolation.
+This leads us to our first complication.
 
-Let's say we had a variable `county` countaining the value "LOS ANGELES", and we wanted to update the `county` column in the `patients` data frame to refer to a lowercased version of the `county` variable.
+## Age is calculated differently for those are alive vs. dead
+
+### For alive patients
+
+For patients with a missing death date, we want to know their age as of `todays_date` ($todays_date). Let's go ahead and filter our dataset to only those patients with a missing `deathdate`, and then calculate their age as of `todays_date`.
+
+!!! info "Note: we have to interpolate todays_date"
+
+	Because all variables in `Tidier.jl` are assumed to be in a "data frame scope," referring to `todays_date` in our analysis would lead to an error because `Tidier.jl` wouldn't be able to find a colun named `todays_date` in the data frame. Hence, we need to interpolate it in from the parent scope, which requires us to use `@eval` at the start of `@chain` and `$todays_date` to interpolate in its value.
 """
 
-# ╔═╡ 41e905e7-41b1-4d6b-ad74-7e09186cd86a
-county = "LOS ANGELES"
+# ╔═╡ 7b62aa0d-0b1b-42a3-a896-31e67cf19500
+@eval @chain patients begin # 1
+	@filter(ismissing(deathdate)) # 2
+	@mutate(age = 
+				difftime( # 3
+					DateTime($todays_date), # 4
+					DateTime(birthdate),
+					"days") / 365.25) # 5
+	@select(birthdate, deathdate, age)
+	@slice_head(n = 10)
+end
 
-# ╔═╡ f980e41e-1b0a-48ee-8a76-5411f3cab9f8
+# 1: Note the use of `@eval` here because we subsequently use `$` for interpolation
+# 2: filter to those with a missing death date
+# 3: `difftime` comes from the TidierDates.jl package, reimplementing the same function from base R. `difftime` requires `DateTime` types, so the each of the Dates are converted into DateTaimes.
+# 4: Interpolate in `todays_date` from the parent scope
+# 5: This is an approximateion to convert days to years, where 365.25 accounts for leap years
+
+# ╔═╡ da450461-ffce-42a9-8612-6c32534a2d9e
 md"""
-We could express interpolating this value into a `Tidier.jl` macro as follows, where we start the chain with `@eval` and then prefix the `county` with `$` to refer to the value of `county` *outside of the data frame scope*.
+### For dead patients
+
+For the 163 patients in the dataset who have died, age can be calculated by taking the difference between the date of birth and death. For these patients, we would not want to know their age as of `todays_date` because today's date is not relevant to their actual age as of today's date.
 """
 
-# ╔═╡ 659ceb7a-e4ef-487b-937c-a2cb5047b6b8
+# ╔═╡ 512f191f-57e2-47a3-a25f-034e96333ef2
 @eval @chain patients begin
-	@select(county)
-	@mutate(county = str_to_lower($county))
+	@filter(!ismissing(deathdate))
+	@mutate(age = 
+				difftime(
+					DateTime(deathdate),
+					DateTime(birthdate),
+					"days") / 365.25)
+	@select(birthdate, deathdate, age)
+	@slice_head(n = 10)
 end
 
-# ╔═╡ 60a74100-597d-4f18-a673-1773921e5698
+# ╔═╡ 8638b0c2-fb9c-4843-baea-1b6e8eb1f61b
 md"""
-## Auto-vectorization
+In both of the prior cases, we first filtered the data to those who are alive or dead, and then we calculated their age using different a calculation for each category.
 
-Going back to the `@mutate(county = str_to_lower(county))` expression, experienced users may also wonder why the function is written as `str_to_lower(county)` rather than `str_to_lower.(county)`. Usually, adding a period to the end of a function call "vectorizes" it so that it runs on vectors (i.e., columns of data) rather than on single values.
+What if we wanted to calculate the age for the whole dataset? Here, we encounter our first use of `if_else`, which we will subsequently use for recoding data.
 
-`Tidier.jl` performs auto-vectorization, such that the function call is actually converted to `str_to_lower.(county)` before it is run. TidierData contains a lookup table of functions that are not to be vectorized -- all other function calls are vectorized by default.
+## Conditionally creating a column
 
-If you knew that `str_to_lower` should be vectorized, you could choose to vectorize it within TidierData. However, we generally discourage vectorizing expressions (unless you need to override a default setting not to vectorize a given function) because letting `Tidier.jl` handle vectorization enables the use of consistent syntax when working with data frame (with TidierData) and databases (with TidierDB).
+To create a age column for both alive and dead patients, we will break this calculation into 2 steps. First, we will create a new column that indicates the date on which we want to calculate the age, which is $todays_date for alive patients and the `deathdate` column for dead patients.
 
-The default settings can be overridden. If you do *not* want a function to be vectorized, you can prefix the function call with a `~`, such as `~str_to_lower(county)`. In this case, that would produce an error because `str_to_lower` operates on scalars and relies on being vectorized to operate on columns of data.
+Then, we will use take a difference between that new column and the date of birth to calculate age.
+
+For convenience, we will store the result to a new `patients_age` data frame.
 """
 
-# ╔═╡ 75b0d884-138c-470a-9b83-0b06192b0f2d
+# ╔═╡ 1cb8751d-6b2c-42fd-a836-3777c9670d05
+patients_age = 
+	@eval @chain patients begin
+	@mutate(todays_date = # 1
+				if_else(
+					ismissing(deathdate),
+					$todays_date,
+					deathdate)
+		   )
+	@mutate(age = 
+			difftime(
+				DateTime(todays_date),
+				DateTime(birthdate),
+				"days") / 365.25
+		   )
+	@select(birthdate, deathdate, age, gender)
+end
+
+# This creates a column `todays_date` in the `patients` data frame, to which we assign the appropriate date based on whether a patient is alive or dead
+
+# ╔═╡ 1c86df78-10c8-497f-af42-0f67032d4706
+md"""
+# Recoding using `if_else`
+
+Now that we have a column representing age, we can use the `if_else` function to recode age into two values: "Adult" and "Child".
+"""
+
+# ╔═╡ 4650642f-0a14-4d87-b9c2-fcf11d436c9b
+@chain patients_age begin
+	@mutate(age_category = if_else(age >= 18, "Adult", "Child"))
+end
+
+# ╔═╡ b87accbf-005a-4793-b775-6dce03afbc73
+md"""
+## `if_else` vs. `ifelse`
+
+!!! info "Note: if_else is a more powerful version of ifelse"
+
+	Experienced users may notice that e are using `if_else` rather than the `ifelse` function that is built into Julia. In this instance, `if_else` is not merely an alias but actually refers to a separate function that is bundled with `Tidier.jl`. The main difference between the two functions is that `if_else` includes an optional 4th argument (i.e., `if_else(condition, true, false, missing)`) that describes which value to return if the condition returns a `missing` value.
+
+	While we did not use this optional argument here, it can come in quite handy. Take a look at this example, in which we determine whether a patient a patient died before or after 2020. Since `deathdate` is missing for alive patients, we can optionally assign it a value using `if_else`.
+"""
+
+# ╔═╡ a399e93d-1ecd-4282-aee5-3c09e135a443
 @chain patients begin
-	@select(county)
-	@mutate(county = str_to_lower.(county))
+	@mutate(died_since_2020 = 
+			if_else(
+				deathdate > ymd("2020-01-01"),
+				"Died after 2020",
+				"Died before 2020",
+				"Still alive"))
+	@count(died_since_2020)
 end
 
-# ╔═╡ 00eb7c61-396e-418e-8f65-ef3e0edda775
+# ╔═╡ d104b2c4-e0bd-42b6-8310-c0582fd770b0
 md"""
-With those preliminaries out of the way, let's dive into each of the verbs of data science.
-
-# `@select` for selecting columns
-
-`@select` is used for selecting columns. Within the Tidier.jl ecosystem, it can also be used to modify columns that are being selected. `@select` supports a number of different syntaxes.
-
-Before we use select columns, let's glimpse the `patients` data frame to remind ourselves of the column names.
+Returning to our original recoding, let's take a look at how many adults and children we have in the dataset. Remember that `@count(age_category)` is a shortcut for `@group_by(age_category) @summarize(n = n())`.
 """
 
-# ╔═╡ e7a7a573-82fe-463d-a497-ea432a46a660
-@glimpse(patients, width = 75)
+# ╔═╡ b07dd5e1-db0c-4bfa-81ee-5cff5dd062ea
+@chain patients_age begin
+	@mutate(age_category = if_else(age >= 18, "Adult", "Child"))
+	@count(age_category)
+end
 
-# ╔═╡ 20bfb084-fc99-4e10-8f42-ac67bfc6205b
+# ╔═╡ a8a6c435-0cad-4cc6-bcfd-7c6dc9d62179
 md"""
-How would we select the `city`, `state`, and `county` columns?
+As long as we have only 2 categories to create (or 3 if our condition returns missing values), then `if_else` is the preferred way to recode data. But if we have more categories, then `case_when` is preferred.
 
-## Individually by name
+# Recoding using `case_when`
+
+The syntax for `case_when` consists of pairs of `condition => value`, where the value is assigned for the first condition that is met for each row. This means that it is perfectly fine for the conditions to overlap, as long as the earliest condition met takes precedence.
+
+Let's create an age category where those 75 and older are considered older adults on one extreme, and those below 4 are considered infants. We can start with those of the highest age as conditions, and sequentially lower the age until we get to "infants" as the returned value. It is common practice, but not required, to include a final condition `true`, which assigns the return value to all remaining rows.
 """
 
-# ╔═╡ a6d8a0fa-dc6f-4c41-9434-3255e2d8135e
+# ╔═╡ 7ce1f522-387e-473c-a946-1cbfa3f37ae7
+@chain patients_age begin
+	@mutate(age_category = 
+				case_when(age >= 75  =>  "Older adult",
+						  age >= 18  =>  "Adult",
+						  age >= 4   =>  "Child",
+		   				  true       =>  "Infant")
+		   )
+	@count(age_category)
+end
+
+# ╔═╡ 81163c1a-b2b9-467a-97ce-5501026f7ae4
+md"""
+If the final condition is not set to `true`, then any rows that do not meet any of the conditions will be assigned a missing value. Here's an example:
+"""
+
+# ╔═╡ 32c9a6b5-258c-4dd1-ae41-d3b1bf8056b4
+@chain patients_age begin
+	@mutate(age_category = 
+				case_when(age >= 75  =>  "Older adult",
+						  age >= 18  =>  "Adult",
+						  age >= 4   =>  "Child",
+		   				  age >= 1   =>  "Infant")
+		   )
+	@count(age_category)
+end
+
+# ╔═╡ ab6950fc-a178-4cc7-af1e-9e202f14df5b
+md"""
+Unlike `if_else`, `case_when` does not have an argument dedicated to what to do if the conditions return a `missing` value. However, you can represent the missingness as a condition within the `case_when` function.
+"""
+
+# ╔═╡ b9b69efe-c3fb-4d98-ba9c-22af09264428
 @chain patients begin
-	@select(city, state, county)
+	@mutate(died_since_2020 = 
+			case_when(
+				deathdate > ymd("2020-01-01")  =>  "Died after 2020",
+				ismissing(deathdate)           =>  "Still alive",
+				true                           =>  "Died before 2020")
+		   )
+	@count(died_since_2020)
 end
 
-# ╔═╡ bf4aae5b-dd1c-4d32-aa05-1d38222844b4
+# ╔═╡ a4e16054-826c-438d-a4d6-67059daf7fd1
 md"""
-## As a named unit range
+`case_when` is great not only for situations involving 3+ return values, but also for situations involving complex conditions involving multiple columns of data. Here, we created a separate value ofr male and female adults but left the child and infant categories unchanged.
 """
 
-# ╔═╡ 7b6213c0-1e15-4bff-bfef-f70f83541d3f
-@chain patients begin
-	@select(city:county)
+# ╔═╡ 2a7dce86-cb60-4981-b973-820d73587c92
+@chain patients_age begin
+	@mutate(age_category = 
+				case_when(age >= 75 && gender == "F"  =>  "Older adult female",
+						  age >= 75 && gender == "M"  =>  "Older adult male",
+						  age >= 18 && gender == "F"  =>  "Adult female",
+						  age >= 18 && gender == "M"  =>  "Adult male",
+						  age >= 4                    =>  "Child",
+		   				  true                        =>  "Infant")
+		   )
+	@count(age_category)
 end
 
-# ╔═╡ d1eb7693-0f9c-4752-a864-b43cf57ed445
+# ╔═╡ 8faed932-457a-40d4-95c6-ca7c44f048a9
 md"""
-## As a numbered unit range
+!!! info "Disambiguating gender and sex"
+
+	Many health datasets, including this one, confuse sex with gender. Whereaas `male` and `female` refer to biological sex, gender refers to a person's identity, which may be similar or different from a person's biological sex. While we chose to use this synthetic dataset because it is much closer to real-world health datasets in good ways, it is unfortunately also similar to real-world data in bad ways.
+
+	Any time a dataset applies a label to a person, the same issues can arise. For eaxmple, similar issues of categorization and miscategorization can apply to the way in which race and ethnicity are elicited and recorded in health datasets.
 """
 
-# ╔═╡ 519a98b5-00e5-443a-bd30-0e73aa2cf2c4
-@chain patients begin
-	@select(18:20)
+# ╔═╡ 5aea8d11-425e-4d66-85b5-12e4649140be
+md"""
+# Bespoke `TidierCats.jl` functions for recoding variables
+
+If you think of `if_else` and `case_when` as the workhorses of recoding data, `TidierCats.jl` provides a set of bespoke functions for achieving many of the same goals as our two handy go-to functions. Fancy, fancy!
+
+Had we wanted to chop age into categories, we could've achieved this using TidierCats `cut` function. THe `extend = true` argument ensures that the values higher than the greatest threshold (i.e., those older than 75) are lumped in with the highest category (in this case, "Older adult").
+
+## `cut` for cutting continuous values into categories
+"""
+
+# ╔═╡ d1e255ae-4f4c-409a-a18b-508f6750deaf
+@chain patients_age begin
+	@mutate(age_category =
+				~cut( # 1
+					age,
+					[0, 4, 18, 75],
+					labels = ["Infant", "Child", "Adult", "Older adult"],
+					extend = true))
+	@count(age_category)
 end
 
-# ╔═╡ ca5bacc1-d50c-439a-8241-16783c7d909a
-md"""
-## Using a predicate function based on column names
+# 1: Note that we had to prefix `cut` with `~` because `cut` operates on the entire column (and not rowwise on each row), so we do not want it to be vectorized. If you omit the tilde, it will produce an error. Once we update `TidierData` to include `cut` on the list of functions not to vectorize, the `~` will no longer be required, and we will update this code.
 
-A predicate function is one that returns a value of `true` or `false` and in this context is based on the column names.
+# ╔═╡ 2c25e3d3-2861-4c26-80df-e10d7e78a941
+md"""
+In this case, we get the same exact numbers as what we calculated using `case_when`, but any time you use a bespoke function, you have to be wary as to how threhsolds are applied. If you read the documentation for `cut`, you'll see that the left side of the interval is is inclusive, but the right side is not. In this case, it produces the same logic as what we had coded in `case_when` because we had made the left side inclusive (e.g., `age >= 18`).
+
+This is noticeable if you remove the `labels` keyword argument and let `cut` produce an automatic label. With intervals, square brackets `[]` are considered inclusive, and parentheses `()` are considered exclusive.
 """
 
-# ╔═╡ a34ddb7d-3d43-462d-8af8-03fe081a004a
-columns_to_select = ["city", "state", "county"]
-
-# ╔═╡ 7d4f56fa-9b95-4d18-a29d-2d5885516b8b
-@eval @chain patients begin
-	@select(in($columns_to_select))
+# ╔═╡ a385861d-7036-49f0-a4c0-fbbfe04d52c5
+@chain patients_age begin
+	@mutate(age_category =
+				~cut(
+					age,
+					[0, 4, 18, 75],
+					# labels = ["Infant", "Child", "Adult", "Older adult"],
+					extend = true))
+	@count(age_category)
 end
 
-# ╔═╡ 109d0ea3-49d2-4a43-925c-84887eb4675c
+# ╔═╡ 066d4e1c-4e89-41ea-a3e1-8905b8e54d55
 md"""
-Using a function can be particularly helpful when the column names you want to select have similar prefixes or suffixes. For example, if we want to select the two columns beginning with `healthcare_`, we could use the following syntax.
+Had we wanted to code `age > 18` instead of `age >= 18`, then `cut` would not have been helpful. Thus, my personal preference is to rely on `case_when` rather than `cut`.
 
-Note that in the following example, `starts_with` is merely an alias for Julia's `startswith` -- using either is fine.
+Another subtle difference you'll notice if you hover over or tap on the results table produced by TidierCats functions (like `cut`) is that TidierCats functions always return a `CategoricalValue` type, whereas `case_when` returned a string.
 """
 
-# ╔═╡ dbcd03ce-54f6-446a-ad21-86527ae7150b
-@chain patients begin
-	@select(starts_with("healthcare_"))
+# ╔═╡ a46051c1-301d-4744-880a-8c378e69ca2f
+md"""
+## A brief taste of `cat_*` functions
+
+TidierCats provides a number of functions beginning with `cat_` which make it possible to write concise code. We will dive deeper into the TidierCats packate in the lesson on [Working with categorical data](working-with-categorical-data.html). Here, we'll give you a brief taste of how `Tidier.jl` makes it easy to work with categorical variables.
+
+
+Let's say you have a categorical variable `age_category`, and now you want to lump any categories with fewer than 10% of the values into a new "Other" category. While this is totally achievable using `case_when`, it would require a bit of thought and work to calculate the proportions before recoding the data.
+
+With `cat_lump_prop`, we can achieve this in a single concise line of code:
+"""
+
+# ╔═╡ 023f1d53-267d-4abb-8b86-c8639a259317
+@chain patients_age begin
+	@mutate(age_category =
+				~cut(
+					age,
+					[0, 4, 18, 75],
+					labels = ["Infant", "Child", "Adult", "Older adult"],
+					extend = true))
+	@mutate(age_category = cat_lump_prop(age_category, 0.10))
+	@count(age_category)
 end
 
-# ╔═╡ 99d477ab-af3b-4b67-a54c-889434780644
+# ╔═╡ 7f8e63ab-0110-4ff3-b1b6-8f412623cd83
 md"""
-You can also mix and match these styles.
+!!! info "Use caution when lumping categories"
+
+	Just because you *can* lump together categories doesn't mean that you *should*. In this case, you'll notice that infants got lumped with older adults into an "Other" category. We would pretty much never want to lump these two groups together for analytical purposes, so use the TidierCats functions with a healthy dose of caution. With great power comes great responsibility.
 """
 
-# ╔═╡ 98132f10-9d1e-46b9-8588-09cd4cc54d65
-@chain patients begin
-	@select(city:state, starts_with("healthcare_"))
-end
-
-# ╔═╡ b564a807-44c8-4c22-9cb9-08087031ba35
-md"""
-## Modifying columns during selection
-
-In `Tidier.jl`, you can also modify columns as you are selecting them. In R, this requires a separate verb `transmute`. We do provide a `@transmute` macro for convenience, but it is merely an alias for `@select`.
-
-The same expression we wrote before using `@select` and `@mutate` could actually be expressed using `@select` by itself.
-"""
-
-# ╔═╡ 58aee13e-34ff-4db9-8e44-5236a915c763
-@chain patients begin
-	@select(county = str_to_lower(county))
-end
-
-# ╔═╡ ba9d45c1-83be-48c8-99e4-279bcde9fadc
-md"""
-## Selecting and modifying multiple columns
-
-What if we wanted to apply a transformation to multiple columns while selecting them? We could rely on the `across()` function, which only works inside `Tidier.jl` macros.
-
-Two things to note:
-1. We prefixed the string within `starts_with` with an `r` to denote that this string is a regular expression.
-2. We had to add a `.` to `str_to_lower` to indicate the need to vectorize `str_to_lower` to work on the column (a vector). This is because `across()` does not perform auto-vectorization. Thus, the `across()` syntax can also be a helpful way to specific complex vectorization patterns.
-"""
-
-# ╔═╡ cdf79ae0-84f9-4f87-b93f-50ce2abff99a
-@chain patients begin
-	@select(across(starts_with(r"city|state"), x -> str_to_lower.(x)))
-end
-
-# ╔═╡ 1f87c691-ef81-4570-8830-a32e5d0e6944
-md"""
-## The world is your oyster
-
-`Tidier.jl` is very flexible and is perfectly happy to let you mix weird mixtures of column numbers and names. Why would you? No idea, but it's technically legal.
-"""
-
-# ╔═╡ e31e2e8b-3508-4a0e-9c26-0fbc836b6957
-@chain patients begin
-	@select(18:county)
-end
-
-# ╔═╡ 76ac9ab1-5ef1-471e-8743-f14542969128
-md"""
-# `@mutate` for creating new columns or modifying existing ones
-
-`@mutate` supports a similar style of coding as `@select`. However, unlike `@select`, `@mutate` leaves in all of the columns. For readability purposes only, we will follow `@mutate` expressions with `@select` expressions to narrow the columns, recognizing that in many cases, we could have achieved the same result with `@select` alone if limiting the column names was a requirement.
-
-Since Julia uses `*` for concatenating strings, we could concatenate the first and last names like this:
-
-## Creating a new column
-"""
-
-# ╔═╡ 2ecb9d1e-ef59-4702-8801-e32004359dad
-@chain patients begin
-	@mutate(name = first * " " * last)
-	@select(first, last, name)
-end
-
-# ╔═╡ 3d497ffa-0905-45f2-971d-641cbf428b11
-md"""
-!!! info "Auto-vectorization of operators"
-
-	`Tidier.jl`'s auto-vectorization also works on operators, so `first * " " * last` is actually converted to `first .* " " .* last` before it is run.
-
-!!! info "Should all functions be vectorized?"
-
-	It's also worth noting that there are times we do *not* want to vectorize functions. For example, what we wanted to calculate the mean value of `healthcare_expenses` and save this to a new column `mean_expenses`?
-
-	In this case, we would want the mean to be calculated for the overall vector (and not separately for each row). `Tidier.jl` knows not to vectorize `mean()`, so it correctly does *not* vectorize it.
-"""
-
-# ╔═╡ 0038380c-734d-4c9c-a2dd-53f6c9aa17fa
-@chain patients begin
-	@mutate(mean_expenses = mean(healthcare_expenses))
-	@select(healthcare_expenses, mean_expenses)
-end
-
-# ╔═╡ 3ca7554a-da90-4954-949d-cb681728c0dc
-md"""
-In this case, if you were to vectorize `mean()`, it would produce a row-wise mean, which is almost *never* the desired result. This is why it's generally a good idea to rely on auto-vectorization.
-"""
-
-# ╔═╡ 367945bf-9b87-4bec-90b7-7df09773b13b
-@chain patients begin
-	@mutate(mean_expenses = mean.(healthcare_expenses))
-	@select(healthcare_expenses, mean_expenses)
-end
-
-# ╔═╡ 0bd22a1a-e396-438b-8a00-73839ad36916
-md"""
-## Mutating an existing column
-
-You can also use `@mutate` to modify an existing column. Note that by default, `Tidier.jl` has immutable objects, which means that the resulting data frame is a copy and does not alter the original. In-place modifying macros like `@mutate!` are on the roadmap but have not yet been added to the package.
-
-Let's modify the `healthcare_coverage` column to be expressed as a percentage of total expenses.
-"""
-
-# ╔═╡ 2f4eb95d-9bfd-4561-97ec-7941dcee7087
-@chain patients begin
-	@mutate(healthcare_coverage = healthcare_coverage / healthcare_expenses)
-	@select(healthcare_coverage)
-end
-
-# ╔═╡ b01bf94b-91f9-42d8-a224-10c472e46760
-md"""
-## Multiple expressions within `@mutate`
-
-You can provide multiple expressions to `@mutate`. However, the subsequent expressions cannot depend on columns created in the prior ones.
-
-So this works:
-"""
-
-# ╔═╡ bb47f740-3df5-4bed-98cc-17c038872ca8
-@chain patients begin
-	@mutate(firstlast = first * " " * last,
-			lastfirst = last * ", " * first)
-	@select(firstlast, lastfirst)
-end
-
-# ╔═╡ 37d96678-52ae-4e68-9a13-e6ab36dda6a7
-md"""
-But this does not:
-
-!!! warn "Expected error"
-
-	Note: the error below is completely expected! Don't worry.
-"""
-
-# ╔═╡ a4cf47ef-778a-4b5b-ad22-136366cdcb1b
-@chain patients begin
-	@mutate(firstlast = first * " " * last,
-			firstlast_upper = str_to_upper(firstlast))
-	@select(firstlast, firstlast_upper)
-end
-
-# ╔═╡ 09d96c87-7b0d-4d0c-9b86-b2fb8621486f
-md"""
-!!! info "Why doesn't this work?"
-
-	This doesn't work **by design**. That is because multiple expressions provided in a single `@mutate` macro are actually run in parallel, thereby making them **faster**. While we could trivially make the expressions run sequentially, this would result in slower code.
-
-	If you really need to run `@mutate` macros sequentially, we recommend putting them in separate calls to `@mutate`.
-
-We can modify our code to make it work by splitting it into separate `@mutate` calls.
-"""
-
-# ╔═╡ 7b3dbcb6-259a-4314-b76b-25c2083923bf
-@chain patients begin
-	@mutate(firstlast = first * " " * last)
-	@mutate(firstlast_upper = str_to_upper(firstlast))
-	@select(firstlast, firstlast_upper)
-end
-
-# ╔═╡ bd9c49fe-b670-43a9-998c-278481894937
-md"""
-## Mutating multiple columns
-
-Similar to `@select`, you can mutate multiple columns using `across(columns, functions)` syntax.
-
-Let's say we wanted to modify healthcare expenses and coverage to be expressed in thousands of dollars.
-"""
-
-# ╔═╡ cad2963a-e6b7-4673-b7e8-4b5b66b647a5
-@chain patients begin
-	@mutate(across(starts_with("healthcare_"), x -> x ./ 1_000))
-	@select(starts_with("healthcare_"))
-end
-
-# ╔═╡ cec3e10d-b77e-4639-a567-b8262ecd7bc7
-md"""
-By default, column names are suffixed with `_function`. If you want to name the columns, you need to define the functions before calling them inside of `across()`.
-"""
-
-# ╔═╡ f3cee948-23ff-45a2-9bd5-42c713bda9d9
-function thousands(x) x ./ 1_000 end
-
-# ╔═╡ af4f2360-0dd6-44c0-878c-186de82e6dc2
-# This currently requires `!!` (bang-bang) interpolation due to a bug, but this will get fixed.
-
-@chain patients begin
-	@mutate(across(starts_with("healthcare_"), !!thousands))
-	@select(starts_with("healthcare_"))
-end
-
-# ╔═╡ 5f4299e2-a3a2-4c51-af92-6e79b537aa10
-md"""
-## Mutating multiple columns with multiple functions
-
-You can also mutate multiple columns with multiple functions.
-"""
-
-# ╔═╡ deeca6c7-9035-4aa5-95f4-f2fc267cd4ac
-# This currently requires `!!` (bang-bang) interpolation due to a bug, but this will get fixed.
-
-@chain patients begin
-	@mutate(across(starts_with("healthcare_"), (!!thousands, mean)))
-	@select(starts_with("healthcare_"))
-end
-
-# ╔═╡ 0c2c4caa-9f19-46fe-b575-8d349a066b11
-md"""
-# `@summarize` or `@summarise` for summarizing multiple rows into a single row
-
-If we want to modify data where the number of rows stays the same (and thus the source data are preserved), we generally want to use `@mutate`. However, if you want to aggregate data to produce a summary of multiple rows into a single row (e.g., using a summary statistic such as `mean`), then `@summarize` is the macro of choice. Note that while this guide will use `@summarize`, the alternate spelling `@summarise` is provided as an alias.
-
-## Creating a single summary statistic
-
-The syntax is similar to `@mutate`, except that the result is a single row (in ungrouped data). Later, when we cover grouping, you'll see that `@summarize` produces a single row per group.
-"""
-
-# ╔═╡ 7f852522-c33d-4245-99bc-17ffaccb436e
-@chain patients begin
-	@summarize(mean_expenses = mean(healthcare_expenses))
-end
-
-# ╔═╡ 0b4ee5c3-4b86-499a-99fa-93b6a3da588d
-md"""
-## Creating multiple summary statistics
-
-You can create multiple summary statistics in the same `@summarize` call, as long as subsequent expressions do not rely on columns created in earlier expressions.
-"""
-
-# ╔═╡ 6fa894c3-8970-4f0c-9d68-273b57a833bb
-@chain patients begin
-	@summarize(mean_expenses = mean(healthcare_expenses),
-			   median_expenses = median(healthcare_expenses))
-end
-
-# ╔═╡ 78137c08-5773-47a6-8deb-7bb0c5b152de
-md"""
-The same idea can also be expressed using the `across(columns, functions)` syntax, which supports all of the selection helper functions.
-"""
-
-# ╔═╡ 03af7bb4-bff5-4ecb-9331-419fc12075ff
-@chain patients begin
-	@summarize(across(healthcare_expenses,
-			   (mean, median)))
-end
-
-# ╔═╡ 80a3fd5a-79f7-4578-9d8e-5534b1d0f9ef
-md"""
-The `across(columns, functions)` syntax is easily extendable to multiple columns and multiple functions, making it especially flexible.
-"""
-
-# ╔═╡ b061fed5-7a88-4a21-beee-c3b5562f65bb
-@chain patients begin
-	@summarize(across((healthcare_expenses, healthcare_coverage),
-			   (mean, median)))
-end
-
-# ╔═╡ 626f5dda-9fc1-4f68-9e4f-3522436f25e0
-md"""
-# `@slice` for slicing rows based on row number
-
-The 3 macros we've covered so far, `@select`, `@mutate`, and `@summarize`, all work on columns. In contrast, `@slice` works on subsetting rows by row number.
-
-## Selecting the first 5 rows
-
-Here's how we can select the first 5 rows.
-"""
-
-# ╔═╡ 4accb7c8-33b9-4c8f-b8eb-4212f6e6c096
-@chain patients begin
-	@slice(1:5)
-end
-
-# ╔═╡ 061776b5-2b38-4939-a3f1-9ab5a4a1c5f0
-md"""
-## Slicing the last 5 rows
-
-In `Tidier.jl`, `n()` is a helper function that stands for the number of rows. We can use it inside of `@mutate` and `@summarize`, and we can also use it in `@slice` to refer to the number of rows.
-
-One way we can slice the last 5 rows is to use `@slice(n()-4:n())`. Note the order of operations in this expression: `n()-4` takes higher priority than `:`.
-"""
-
-# ╔═╡ 81df963e-04b0-4e70-a578-db1d171c2058
-@chain patients begin
-	@slice(n()-4:n())
-end
-
-# ╔═╡ b0c0a70f-75c5-4f0c-ae83-509b1a358eb0
-md"""
-Slicing supports Julia unit ranges, so if you want to slice every 10th row, you can use a Julia unit range from `1` to `n()` counting by every 10th value.
-"""
-
-# ╔═╡ fb742fd8-21c5-4144-9231-ca0675a01a9c
-@chain patients begin
-	@slice(1:10:n())
-end
-
-# ╔═╡ 107c2597-38ee-4210-bdd2-f3850ef63494
-md"""
-## Negated slicing
-
-Another way to select the last 5 rows is to use negated slicing. Negated slice indices will be excluded, so if you exclude all rows from `1` to `n()-5`, that will leave only the last 5 rows in the data frame.
-"""
-
-# ╔═╡ 85930246-d399-4ee6-9739-65f7f9de730e
-@chain patients begin
-	@slice(-(1:n()-5))
-end
-
-# ╔═╡ 93609f7b-b612-4f91-a33e-6906348731b0
-md"""
-Up until now, we've focused on just the 5 verbs and tried to stay away from other advanced variants. Now, we will introduce you to some of the `@slice` variants, which make these different kinds of slicing operations easier:
-
-* `@slice_head`
-* `@slice_tail`
-* `@slice_sample`
-* `@slice_max`
-* `@slice_min`
-"""
-
-# ╔═╡ 7c7b18c1-1ed7-47ae-b6eb-eea97f88f762
-md"""
-## `@slice_head` to slice the first 5 rows
-
-`@slice_head` provides a convenient shortcut for slicing the first 5 rows. Note that you have to provide either `n` (number) or `prop` (proportion) as keyword arguments.
-
-Specifying `n` slices the first `n` rows.
-"""
-
-# ╔═╡ f0df7895-765c-47a8-a669-bbcd1037b7c8
-@chain patients begin
-	@slice_head(n = 5)
-end
-
-# ╔═╡ 38729089-e7e0-47b9-afc4-fdd44ee67acc
-md"""
-## `@slice_head` to slice the first 1% of rows
-
-Specifying `prop` slices the first `prop` proportion of rows from the data frame.
-"""
-
-# ╔═╡ 08615284-1a15-4e7f-a8c0-4f3795657374
-@chain patients begin
-	@slice_head(prop = 0.01)
-end
-
-# ╔═╡ cb21f6c0-d603-43ed-8053-ab531b3f2355
-md"""
-## `@slice_tail` to slice the last 5 rows
-
-`@slice_tail` works similarly and provides a convenient shortcut for slicing the last 5 rows. Note that you have to provide either `n` (number) or `prop` (proportion) as keyword arguments.
-"""
-
-# ╔═╡ 2d67086f-c980-4fd6-8fcf-3684685c4d1d
-@chain patients begin
-	@slice_tail(n = 5)
-end
-
-# ╔═╡ 36e15860-e571-4075-913b-1950208557cf
-md"""
-## `@slice_sample` to slice 5 random rows
-
-`@slice_sample` provides a convenient way to sample 5 random rows. Similar to `@slice_head` and `@slice_tail`, you have to provide either `n` (number) or `prop` (proportion) as keyword arguments.
-"""
-
-# ╔═╡ a0ae43af-c925-4558-a666-a8cabd7f6eb2
-@chain patients begin
-	@slice_sample(n = 5)
-end
-
-# ╔═╡ e8dbc800-b80a-46f2-9e84-576aeb30b471
-md"""
-## `@slice_sample` to slice a random 1% sample of rows
-
-This can be helpful for model-building where you want to set aside a random test set consisting of a fixed percentage of your data frame.
-"""
-
-# ╔═╡ fe5e882d-4986-4984-8aea-49aafdab51c0
-@chain patients begin
-	@slice_sample(prop = 0.01)
-end
-
-# ╔═╡ 5290690c-823b-4f9d-a917-d4a69c5486ac
-md"""
-## `@slice_max` to slice the 5 highest values of a variable
-
-`@slice_max` provides a convenient way to slice a fixed number of rows based on the maximum `n` or `prop` values of a variable. Note that `with_ties` is set to true by default, so you may get more rows than your `n` or `prop` if there are ties.
-"""
-
-# ╔═╡ 8c659b07-1ee5-4950-ad26-837461aa2b75
-@chain patients begin
-	@slice_max(healthcare_expenses, n = 5)
-	@select(healthcare_expenses)
-end
-
-# ╔═╡ b5090de8-9eb3-4a9d-adf9-28ddd1a8f1cb
-md"""
-## `@slice_min` to slice the 5 lowest values of a variable
-
-`@slice_min` provides a convenient way to slice a fixed number of rows based on the minimum `n` or `prop` values of a variable. Note that `with_ties` is set to true by default, so you may get more rows than your `n` or `prop` if there are ties.
-"""
-
-# ╔═╡ 6f1c7d33-4471-4f28-811e-576574cf9be2
-@chain patients begin
-	@slice_min(healthcare_expenses, n = 5)
-	@select(healthcare_expenses)
-end
-
-# ╔═╡ 63ff079c-2f44-4b38-8000-3e4897fc737c
-md"""
-# `@filter` for filtering in rows based on criteria
-
-The last "basic" verb we will learn in this lesson is `@filter`, which allows rows to be subset based on criteria.
-
-### A simple example
-
-Let's say we wanted to limit our dataset to rows where a person is still alive (their death date is missing), they go by a "Ms." or "Mrs." prefix, and they have a birthday in July.
-
-Here's how we would achieve that:
-"""
-
-# ╔═╡ b69f0827-b0f2-4081-83a4-32a7ae2c2cdd
-@chain patients begin
-	@filter(ismissing(deathdate) && 
-			prefix in ("Ms.", "Mrs") && 
-			month(birthdate) == 7)
-end
-
-# ╔═╡ 98e58900-c491-4513-ada9-a190f7a5bb63
-md"""
-!!! info "Let's break down some details"
-
-	There a couple of Tidier-specific things to notice here. First, TidierData's auto-vectorization means that `ismissing()` is being converted to `ismissing.()`, and `&&` is being converted to `.&&` so that these operations are vectorized. In general, `&&` is preferred for `@filter` over `&` because `&&` is a shortcut operator -- the second condition is only evaluated if if the first is `true`.
-
-	Second, `prefix in ("Ms.", "Mrs")` is being converted behind the scenes into `in.(prefix, Ref(Set("Ms.", "Mrs.")))` before being run in Julia. This allows you to write a very compact syntax or `in`, and the rationale for this specific conversion is that it is more performant approach for large datasets.
-
-	Third, you'll notice we didn't need to type in `using Dates` to access the `month()` function. That is because TidierDates provides a number of helper functions to handle dates, and TidierDates also re-exports the Dates package. This is part of the batteries-included Tidier philosophy.
-"""
-
-# ╔═╡ c45729e7-6ab5-4d63-ba17-cf7737710c58
-md"""
-## Filtering using multiple arguments
-
-The expression above could also be written using multiple arguments. When multiple arguments are provided, they are equivalent to an `&&` operation.
-"""
-
-# ╔═╡ 14dc9df6-678e-44c9-9b02-aa38cfe3cd27
-@chain patients begin
-	@filter(ismissing(deathdate),
-			prefix in ("Ms.", "Mrs"),
-			month(birthdate) == 7)
-end
-
-# ╔═╡ 0ba6d4ce-69af-4d13-b035-e20994b20518
-md"""
-## Using `@filter` to slice
-
-Just like all macros have access to the `n()` helper function to access the number of rows, all macros also have access to the `row_number()` helpful function, which returns the row number for each row. For ungrouped data, this is simply the row number over the entire data frame. For grouped data, this is assigned separately for each group (similar to `n()`).
-"""
-
-# ╔═╡ 2fd790d0-3290-4211-b087-781c3bd87f04
-@chain patients begin
-	@filter(row_number() in 1:5)
-end
-
-# ╔═╡ f25e2311-cc19-46ad-b1fe-8ad85fa5321d
+# ╔═╡ bf44ca88-2e8b-44af-99af-f68a68d64191
 md"""
 # Summary
 
-In this section, we learned about the 5 common single-data frame verbs that help accomplish 80% of exploratory data analysis work.
+In this lesson, we learned about the two main workhorse functions for recoding data: `if_else` and `case_when`. We also dipped our toes into some of the bespoke TidierCats functions that can help with both recoding data and handling categorical variables more broadly.
 
-* `@select`: for selecting columns
-* `@mutate`: for creating new columns or modifying existing ones
-* `@summarize` or `@summarise`: for summarizing multiple rows into a single row
-* `@slice`: for slicing rows based on row number
-* `@filter`: for filtering *in* rows based on criteria
-
-And we learned how to chain these operations together using `@chain`.
-
-We also learned about variants of `@slice`, including:
-
-* `@slice_head`, `@slice_tail`, `@slice_sample`, `@slice_max`, and `@slice_min`
-
-In the next section, we will learn how to perform each of these operations separately for each group, using `@group_by` and `@ungroup`.
+We will return to some of these advanced capabilities in the [Working with categorical data](working-with-categorical-data.html) section.
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -2972,9 +2666,9 @@ version = "1.6.1"
 
 [[deps.TidierCats]]
 deps = ["CategoricalArrays", "DataFrames", "Reexport", "Statistics"]
-git-tree-sha1 = "7841f49f36ee19dc0ac25615572c55da71f89bb7"
+git-tree-sha1 = "266bb30c1abd36a139b824d76375a316d63e269d"
 uuid = "79ddc9fe-4dbf-4a56-a832-df41fb326d23"
-version = "0.2.1"
+version = "0.2.2"
 
 [[deps.TidierDB]]
 deps = ["Arrow", "CSV", "Chain", "Crayons", "DataFrames", "Dates", "DuckDB", "DuckDB_jll", "GZip", "HTTP", "JSON3", "MacroTools", "Reexport"]
@@ -3013,10 +2707,10 @@ uuid = "20186a3f-b5d3-468e-823e-77aae96fe2d8"
 version = "0.4.1"
 
 [[deps.TidierFiles]]
-deps = ["Arrow", "CSV", "DataFrames", "Dates", "HTTP", "JSON3", "Parquet2", "RData", "Random", "ReadStatTables", "Reexport", "Sockets", "XLSX"]
-git-tree-sha1 = "64ba58fe0f18c3ae17f03f8a574eec3b9d7aefb8"
+deps = ["Arrow", "CSV", "DataFrames", "Dates", "HTTP", "JSON", "JSON3", "Parquet2", "RData", "Random", "ReadStatTables", "Reexport", "Sockets", "XLSX"]
+git-tree-sha1 = "da8dd6548e702c2106c86c73350de425d57c43a1"
 uuid = "8ae5e7a9-bdd3-4c93-9cc3-9df4d5d947db"
-version = "0.3.0"
+version = "0.3.1"
 
 [[deps.TidierIteration]]
 deps = ["Chain", "DataFrames", "JSON3"]
@@ -3355,107 +3049,50 @@ version = "3.6.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─b62ef720-1119-11f0-188c-c339c6461038
-# ╟─6166d982-4826-43f0-b08b-3898bc7b1909
-# ╟─32e83bd6-e5a3-4f86-9b97-acbfe683b0e2
-# ╟─c6ff7302-4168-4725-8985-8d14a267f556
-# ╠═9542ec18-7db2-45e2-8ee2-7b761225e106
-# ╟─9aa83c02-034b-45ce-bbc6-793f970ec7a9
-# ╟─195c748a-7487-477e-b937-c4250a7791aa
-# ╠═86c1fb86-a866-4205-8cee-a267d81410d9
-# ╟─93f456b0-7632-4f9b-a74a-a668676c79dd
-# ╠═f02bcd5f-c6e1-4afa-acf6-09f6d6470515
-# ╟─fbb1ba79-0c17-4d5b-8c8a-ecf1c9e426dc
-# ╠═7276c00f-994a-4cb7-a458-135525ec1c75
-# ╟─e3ea31fe-3fa2-475a-a307-1a4161320e50
-# ╠═50e73b83-1cd2-484a-9089-b4883db5a673
-# ╟─7fed6f55-0195-4725-945b-c563fe78502e
-# ╟─522804b5-9cfc-40b1-a8db-700b8f6dba90
-# ╠═41e905e7-41b1-4d6b-ad74-7e09186cd86a
-# ╟─f980e41e-1b0a-48ee-8a76-5411f3cab9f8
-# ╠═659ceb7a-e4ef-487b-937c-a2cb5047b6b8
-# ╟─60a74100-597d-4f18-a673-1773921e5698
-# ╠═75b0d884-138c-470a-9b83-0b06192b0f2d
-# ╟─00eb7c61-396e-418e-8f65-ef3e0edda775
-# ╠═e7a7a573-82fe-463d-a497-ea432a46a660
-# ╟─20bfb084-fc99-4e10-8f42-ac67bfc6205b
-# ╠═a6d8a0fa-dc6f-4c41-9434-3255e2d8135e
-# ╟─bf4aae5b-dd1c-4d32-aa05-1d38222844b4
-# ╠═7b6213c0-1e15-4bff-bfef-f70f83541d3f
-# ╟─d1eb7693-0f9c-4752-a864-b43cf57ed445
-# ╠═519a98b5-00e5-443a-bd30-0e73aa2cf2c4
-# ╟─ca5bacc1-d50c-439a-8241-16783c7d909a
-# ╠═a34ddb7d-3d43-462d-8af8-03fe081a004a
-# ╠═7d4f56fa-9b95-4d18-a29d-2d5885516b8b
-# ╟─109d0ea3-49d2-4a43-925c-84887eb4675c
-# ╠═dbcd03ce-54f6-446a-ad21-86527ae7150b
-# ╟─99d477ab-af3b-4b67-a54c-889434780644
-# ╠═98132f10-9d1e-46b9-8588-09cd4cc54d65
-# ╟─b564a807-44c8-4c22-9cb9-08087031ba35
-# ╠═58aee13e-34ff-4db9-8e44-5236a915c763
-# ╟─ba9d45c1-83be-48c8-99e4-279bcde9fadc
-# ╠═cdf79ae0-84f9-4f87-b93f-50ce2abff99a
-# ╟─1f87c691-ef81-4570-8830-a32e5d0e6944
-# ╠═e31e2e8b-3508-4a0e-9c26-0fbc836b6957
-# ╟─76ac9ab1-5ef1-471e-8743-f14542969128
-# ╠═2ecb9d1e-ef59-4702-8801-e32004359dad
-# ╟─3d497ffa-0905-45f2-971d-641cbf428b11
-# ╠═0038380c-734d-4c9c-a2dd-53f6c9aa17fa
-# ╟─3ca7554a-da90-4954-949d-cb681728c0dc
-# ╠═367945bf-9b87-4bec-90b7-7df09773b13b
-# ╟─0bd22a1a-e396-438b-8a00-73839ad36916
-# ╠═2f4eb95d-9bfd-4561-97ec-7941dcee7087
-# ╟─b01bf94b-91f9-42d8-a224-10c472e46760
-# ╠═bb47f740-3df5-4bed-98cc-17c038872ca8
-# ╟─37d96678-52ae-4e68-9a13-e6ab36dda6a7
-# ╠═a4cf47ef-778a-4b5b-ad22-136366cdcb1b
-# ╟─09d96c87-7b0d-4d0c-9b86-b2fb8621486f
-# ╠═7b3dbcb6-259a-4314-b76b-25c2083923bf
-# ╟─bd9c49fe-b670-43a9-998c-278481894937
-# ╠═cad2963a-e6b7-4673-b7e8-4b5b66b647a5
-# ╟─cec3e10d-b77e-4639-a567-b8262ecd7bc7
-# ╠═f3cee948-23ff-45a2-9bd5-42c713bda9d9
-# ╠═af4f2360-0dd6-44c0-878c-186de82e6dc2
-# ╟─5f4299e2-a3a2-4c51-af92-6e79b537aa10
-# ╠═deeca6c7-9035-4aa5-95f4-f2fc267cd4ac
-# ╟─0c2c4caa-9f19-46fe-b575-8d349a066b11
-# ╠═7f852522-c33d-4245-99bc-17ffaccb436e
-# ╟─0b4ee5c3-4b86-499a-99fa-93b6a3da588d
-# ╠═6fa894c3-8970-4f0c-9d68-273b57a833bb
-# ╟─78137c08-5773-47a6-8deb-7bb0c5b152de
-# ╠═03af7bb4-bff5-4ecb-9331-419fc12075ff
-# ╟─80a3fd5a-79f7-4578-9d8e-5534b1d0f9ef
-# ╠═b061fed5-7a88-4a21-beee-c3b5562f65bb
-# ╟─626f5dda-9fc1-4f68-9e4f-3522436f25e0
-# ╠═4accb7c8-33b9-4c8f-b8eb-4212f6e6c096
-# ╟─061776b5-2b38-4939-a3f1-9ab5a4a1c5f0
-# ╠═81df963e-04b0-4e70-a578-db1d171c2058
-# ╟─b0c0a70f-75c5-4f0c-ae83-509b1a358eb0
-# ╠═fb742fd8-21c5-4144-9231-ca0675a01a9c
-# ╟─107c2597-38ee-4210-bdd2-f3850ef63494
-# ╠═85930246-d399-4ee6-9739-65f7f9de730e
-# ╟─93609f7b-b612-4f91-a33e-6906348731b0
-# ╟─7c7b18c1-1ed7-47ae-b6eb-eea97f88f762
-# ╠═f0df7895-765c-47a8-a669-bbcd1037b7c8
-# ╟─38729089-e7e0-47b9-afc4-fdd44ee67acc
-# ╠═08615284-1a15-4e7f-a8c0-4f3795657374
-# ╟─cb21f6c0-d603-43ed-8053-ab531b3f2355
-# ╠═2d67086f-c980-4fd6-8fcf-3684685c4d1d
-# ╟─36e15860-e571-4075-913b-1950208557cf
-# ╠═a0ae43af-c925-4558-a666-a8cabd7f6eb2
-# ╟─e8dbc800-b80a-46f2-9e84-576aeb30b471
-# ╠═fe5e882d-4986-4984-8aea-49aafdab51c0
-# ╟─5290690c-823b-4f9d-a917-d4a69c5486ac
-# ╠═8c659b07-1ee5-4950-ad26-837461aa2b75
-# ╟─b5090de8-9eb3-4a9d-adf9-28ddd1a8f1cb
-# ╠═6f1c7d33-4471-4f28-811e-576574cf9be2
-# ╟─63ff079c-2f44-4b38-8000-3e4897fc737c
-# ╠═b69f0827-b0f2-4081-83a4-32a7ae2c2cdd
-# ╟─98e58900-c491-4513-ada9-a190f7a5bb63
-# ╟─c45729e7-6ab5-4d63-ba17-cf7737710c58
-# ╠═14dc9df6-678e-44c9-9b02-aa38cfe3cd27
-# ╟─0ba6d4ce-69af-4d13-b035-e20994b20518
-# ╠═2fd790d0-3290-4211-b087-781c3bd87f04
-# ╟─f25e2311-cc19-46ad-b1fe-8ad85fa5321d
+# ╟─4042d526-18bd-11f0-2d79-8b6ff113de76
+# ╟─52fdd6f8-b472-4224-8b8c-1276f0cdb0b7
+# ╟─a60ab41c-717e-4f6b-9cca-0a4b37fd1020
+# ╟─fa1ab250-9c22-4049-ac56-ce72b235a269
+# ╠═dee44068-3258-401b-aaf9-a22379817f59
+# ╟─b9770ec7-1345-4ccb-abfe-79c99959f8d7
+# ╟─d886ef58-5314-4a82-a0b0-f076ba670387
+# ╠═3dd56607-ab8c-477d-8714-1051e5a87eb2
+# ╟─b6c3d41f-b7b4-47a5-9ae6-b6fde37a9225
+# ╟─dbbdf3ea-7df9-4990-9ddf-4eb4dcde671a
+# ╠═260366bf-35fe-4fb4-81ef-4c0a6eda1e5f
+# ╠═ef44271c-3df6-43a1-9f1f-8eb49d6b1ca1
+# ╠═46cb6a28-88f9-4cfc-935f-324c2dc46622
+# ╟─541603d5-71dd-41c9-ac85-0da45ec922d3
+# ╠═db1f643d-18cf-455c-ba91-8f741b382198
+# ╟─fee90e72-788e-481d-bbbf-71ce3005b34d
+# ╠═7b62aa0d-0b1b-42a3-a896-31e67cf19500
+# ╟─da450461-ffce-42a9-8612-6c32534a2d9e
+# ╠═512f191f-57e2-47a3-a25f-034e96333ef2
+# ╟─8638b0c2-fb9c-4843-baea-1b6e8eb1f61b
+# ╠═1cb8751d-6b2c-42fd-a836-3777c9670d05
+# ╟─1c86df78-10c8-497f-af42-0f67032d4706
+# ╠═4650642f-0a14-4d87-b9c2-fcf11d436c9b
+# ╟─b87accbf-005a-4793-b775-6dce03afbc73
+# ╠═a399e93d-1ecd-4282-aee5-3c09e135a443
+# ╟─d104b2c4-e0bd-42b6-8310-c0582fd770b0
+# ╠═b07dd5e1-db0c-4bfa-81ee-5cff5dd062ea
+# ╟─a8a6c435-0cad-4cc6-bcfd-7c6dc9d62179
+# ╠═7ce1f522-387e-473c-a946-1cbfa3f37ae7
+# ╟─81163c1a-b2b9-467a-97ce-5501026f7ae4
+# ╠═32c9a6b5-258c-4dd1-ae41-d3b1bf8056b4
+# ╟─ab6950fc-a178-4cc7-af1e-9e202f14df5b
+# ╠═b9b69efe-c3fb-4d98-ba9c-22af09264428
+# ╟─a4e16054-826c-438d-a4d6-67059daf7fd1
+# ╠═2a7dce86-cb60-4981-b973-820d73587c92
+# ╟─8faed932-457a-40d4-95c6-ca7c44f048a9
+# ╟─5aea8d11-425e-4d66-85b5-12e4649140be
+# ╠═d1e255ae-4f4c-409a-a18b-508f6750deaf
+# ╟─2c25e3d3-2861-4c26-80df-e10d7e78a941
+# ╠═a385861d-7036-49f0-a4c0-fbbfe04d52c5
+# ╟─066d4e1c-4e89-41ea-a3e1-8905b8e54d55
+# ╟─a46051c1-301d-4744-880a-8c378e69ca2f
+# ╠═023f1d53-267d-4abb-8b86-c8639a259317
+# ╟─7f8e63ab-0110-4ff3-b1b6-8f412623cd83
+# ╟─bf44ca88-2e8b-44af-99af-f68a68d64191
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
