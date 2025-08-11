@@ -149,16 +149,16 @@ end
 	@summarize(max_birthdate = maximum(birthdate),
 			   max_deathdate = maximum(deathdate))
 	@collect()
-	@pivot_longer()
+	@pivot_longer(cols = everything())
 end
 
 # ╔═╡ 1f9d1d3d-6132-4cfe-a8ab-132aba378f96
 todays_date = @chain begin
-	db_table(connect(duckdb()), "data/patients.csv")
+	patients
 	@summarize(max_birthdate = maximum(birthdate),
 			   max_deathdate = maximum(deathdate))
 	@collect()
-	@pivot_longer()
+	@pivot_longer(cols = everything())
 	@filter(value == maximum(value))
 	@pull(value)
 	_[1] # 1
@@ -204,32 +204,32 @@ patients_age = @eval @chain begin
 end
 
 # ╔═╡ 005330a2-e7b1-4381-9d50-453ba1d2ce4e
-@chain t(patients_age) begin
+@chain patients_age begin
 	@mutate(age_category = if_else(age >= 18, "Adult", "Child"))
 	@count(age_category)
 	@collect()
 end
 
 # ╔═╡ 5d2390fb-c618-4d19-963b-9b2601021c80
-@chain t(patients_age) begin
+@chain patients_age begin
 	@mutate(age_category = 
-			case_when(age >= 75, "Older adult",
-					  age >= 18, "Adult",
-					  age >= 4, "Child",
-					  true, "Infant"))
+			case_when(age >= 75 => "Older adult",
+					  age >= 18 => "Adult",
+					  age >= 4 => "Child",
+					  true => "Infant"))
 	@count(age_category)
 	@collect()
 end
 
 # ╔═╡ c8ccb7ec-ae75-4dbb-9448-0bfe853b5268
-@chain t(patients_age) begin
+@chain patients_age begin
 	@mutate(age_category = 
-			case_when(age >= 75 && gender == "F", "Older adult female",
-					  age >= 75 && gender == "M", "Older adult male",
-					  age >= 18  && gender == "F", "Adult female",
-					  age >= 18  && gender == "M", "Adult male",
-					  age >= 4, "Child",
-					  true, "Infant"))
+			case_when(age >= 75 && gender == "F" => "Older adult female",
+					  age >= 75 && gender == "M" => "Older adult male",
+					  age >= 18  && gender == "F" => "Adult female",
+					  age >= 18  && gender == "M" => "Adult male",
+					  age >= 4 => "Child",
+					  true => "Infant"))
 	@count(age_category)
 	@collect()
 end
@@ -241,34 +241,32 @@ patients = db_table(connect(duckdb()), "data/patients.csv");
 meds = db_table(connect(duckdb()), "data/medications.csv");
 
 # ╔═╡ 215ed9ca-6698-4f00-ac25-04fc08470981
-@chain t(patients) @collect()
+@chain patients @collect()
 
 # ╔═╡ 2b7d151e-af7c-49ab-9b64-6b3d922c9312
-@chain t(meds) @collect()
+@chain meds @collect()
 
 # ╔═╡ 917616d8-bc68-450f-bb72-0571985643af
-@chain t(meds) begin
+@chain meds begin
 	@filter(!ismissing(start), ismissing(stop)) # med is still active
 	@count(patient) # count unique rows at the patient level, save result to `n`
-	@arrange(desc(count)) # arrange in descending order of count
+	@arrange(desc(n)) # arrange in descending order of count
 	@collect()
 end
 
 # ╔═╡ b256e86c-c091-4125-bd33-867908b19b0a
 meds_clean_count = 
-	@chain t(meds) begin
+	@chain meds begin
 	@filter(!ismissing(start), ismissing(stop)) # med is still active
 	@count(patient) # count unique rows at the patient level, save result to `n`
-	@arrange(desc(count)) # arrange in descending order of count
+	@arrange(desc(n)) # arrange in descending order of count
 end
 
 # ╔═╡ 662ee3aa-1239-419d-b0a4-516ef8b47a15
 @chain begin
-	@left_join(t(patients), t(meds_clean_count), id = patient)
-	@mutate(num_meds = replace_missing(count, 0))
-	@summarize(mean_num_meds = mean(num_meds),
-			   min_num_meds = minimum(num_meds),
-			   max_num_meds = maximum(num_meds))
+	@left_join(patients, meds_clean_count, id = patient)
+	@mutate(num_meds = replace_missing(n, 0))
+	@summarize(across(num_meds, (mean, minimum, maximum)))
 	@collect()
 end
 
