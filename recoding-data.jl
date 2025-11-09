@@ -351,7 +351,7 @@ md"""
 
 If you think of `if_else` and `case_when` as the workhorses of recoding data, `TidierCats.jl` provides a set of bespoke functions for achieving many of the same goals as our two handy go-to functions. Fancy, fancy!
 
-Had we wanted to chop age into categories, we could've achieved this using TidierCats `cut` function. THe `extend = true` argument ensures that the values higher than the greatest threshold (i.e., those older than 75) are lumped in with the highest category (in this case, "Older adult").
+Had we wanted to chop age into categories, we could've achieved this using CategoricalArrays `cut` function (reexported by TidierCats). THe `extend = true` argument ensures that the values higher than the greatest threshold (i.e., those older than 75) are lumped in with the highest category (in this case, "Older adult").
 
 ## `cut` for cutting continuous values into categories
 """
